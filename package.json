@@ -1,17 +1,17 @@
 {
-  "name": "xml-js",
-  "version": "1.6.11",
-  "description": "A convertor between XML text and Javascript object / JSON text.",
+  "name": "@artrv/xml-js",
+  "version": "1.6.12",
+  "description": "Fork of xml-js with a memory retention fix and isolated per-call parsing state. Converts between XML and JavaScript objects / JSON.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nashwaan/xml-js.git"
+    "url": "git+https://github.com/artrv/xml-js.git"
   },
   "author": "Yousuf Almarzooqi <ysf953@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nashwaan/xml-js/issues"
+    "url": "https://github.com/artrv/xml-js/issues"
   },
-  "homepage": "https://github.com/nashwaan/xml-js#readme",
+  "homepage": "https://github.com/artrv/xml-js#readme",
   "keywords": [
     "XML",
     "xml",
@@ -65,21 +65,19 @@
     "open:istanbul": "biased-opener --browser chrome http://localhost:9998",
     "live": "npm-run-all --parallel live:* open:*",
     "start": "npm-run-all --parallel bundle:jasmine live:jasmine open:jasmine watch:istanbul live:istanbul open:istanbul",
-    "git:commit": "git add . && git commit -a -m \"Committed by npm script.\" && git push origin master",
-    "git:push": "git push origin master",
-    "deploy": "npm-run-all --serial coverage:* git:*",
-    "coverage": "npm-run-all coverage:*",
-    "coverage:a-step": "npm run istanbul",
-    "coverage:coveralls": "cross-env COVERALLS_REPO_TOKEN=CaEwzjHxsKRqomJSYmGagrJdlR7uLHhHC && cat ./test/coverage-jasmine/lcov.info | coveralls",
-    "coverage:codecov": "codecov --token=0e52af41-702b-4d7f-8aa3-61145ac36624 --file=test/coverage-jasmine/lcov.info ",
-    "coverage:codacy": "cross-env CODACY_PROJECT_TOKEN=0207815122ea49a68241d1aa435f21f1 && cat ./test/coverage-jasmine/lcov.info | codacy-coverage",
-    "coverage:codeclimate": "cross-env CODECLIMATE_REPO_TOKEN=60848a077f9070acf358b0c7145f0a2698a460ddeca7d8250815e75aa4333f7d codeclimate-test-reporter < test\\coverage-jasmine\\lcov.info",
-    "prepublish": "npm run test",
-    "test": "npm run jasmine && npm run jest && npm run test:types",
-    "test:types": "tsc -p ./types"
+    "test": "npm run test:upstream && npm run test:lifecycle && npm run test:ownership",
+    "test:types": "tsc -p ./types",
+    "test:upstream": "npm run jasmine && npm run jest -- --runInBand && npm run test:types",
+    "test:lifecycle": "node --test test/xml-parser-lifecycle.test.cjs",
+    "test:ownership": "node --test test/xml-parser-ownership.test.cjs",
+    "test:package": "node test/package-smoke.cjs",
+    "test:browser": "node test/browser-smoke.cjs",
+    "build:test-browser": "globify test/*.spec.js --outfile test/browse-jasmine/bundle.js",
+    "prepack": "npm run build",
+    "verify:package": "node test/verify-package.cjs"
   },
   "dependencies": {
-    "sax": "^1.2.4"
+    "sax": "1.4.1"
   },
   "devDependencies": {
     "babel-core": "^6.26.3",
@@ -106,6 +104,22 @@
     "typescript": "^3.2.2",
     "unminified-webpack-plugin": "^1.4.2",
     "watch": "^1.0.1",
-    "webpack": "^3.10.0"
+    "webpack": "^3.10.0",
+    "xml-js-upstream": "npm:xml-js@1.6.11"
+  },
+  "files": [
+    "lib/",
+    "dist/",
+    "bin/*.js",
+    "index.js",
+    "types/index.d.ts",
+    "README.md",
+    "FORK.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

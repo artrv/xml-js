@@ -1,22 +1,32 @@
-![XML ⇔ JS/JSON](http://nashwaan.github.io/xml-js/images/logo.svg)
+# xml-js — unofficial fork
 
-Convert XML text to Javascript object / JSON text (and vice versa).
+Fork of xml-js with a memory retention fix and isolated per-call parsing state.
+Converts between XML and JavaScript objects / JSON.
 
-[![Build Status](https://ci.appveyor.com/api/projects/status/0ky9f115m0f0r0gf?svg=true)](https://ci.appveyor.com/project/nashwaan/xml-js)
-[![Build Status](https://travis-ci.org/nashwaan/xml-js.svg?branch=master)](https://travis-ci.org/nashwaan/xml-js)
-[![Build Status](https://img.shields.io/circleci/project/nashwaan/xml-js.svg)](https://circleci.com/gh/nashwaan/xml-js)
-<!-- [![pipeline status](https://gitlab.com/nashwaan/xml-js/badges/master/pipeline.svg)](https://gitlab.com/nashwaan/xml-js/commits/master) -->
+This is **[artrv/xml-js](https://github.com/artrv/xml-js)**, an unofficial fork of
+**[nashwaan/xml-js](https://github.com/nashwaan/xml-js)**, based on version **1.6.11**.
+The upstream API documentation below remains useful for this fork.
 
-[![Coverage Status](https://coveralls.io/repos/github/nashwaan/xml-js/badge.svg?branch=master)](https://coveralls.io/github/nashwaan/xml-js?branch=master)
-[![codecov](https://codecov.io/gh/nashwaan/xml-js/branch/master/graph/badge.svg)](https://codecov.io/gh/nashwaan/xml-js)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/f6ed5dd79a5b4041bfd2732963c4d09b)](https://www.codacy.com/app/ysf953/xml-js?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=nashwaan/xml-js&amp;utm_campaign=Badge_Grade)
-[![Code Climate](https://codeclimate.com/github/nashwaan/xml-js/badges/gpa.svg)](https://codeclimate.com/github/nashwaan/xml-js)
+Upstream keeps the last XML parsing context at module scope. This fork moves that
+context and its SAX handlers inside each `xml2js` call. Completed and throwing
+calls can release their trees and callback-owned data; nested calls have independent
+state. Caller-held results and requested parent links remain usable. `xml2json`
+uses the same corrected parser. CommonJS exports, options, error behavior, types
+and serialization are preserved; `js2xml` is unchanged.
 
-[![npm](http://img.shields.io/npm/v/xml-js.svg)](https://www.npmjs.com/package/xml-js)
-[![License](https://img.shields.io/npm/l/xml-js.svg)](LICENSE)
-[![Downloads/month](https://img.shields.io/npm/dm/xml-js.svg)](http://www.npmtrends.com/xml-js)
-[![Dependency Status](https://david-dm.org/nashwaan/xml-js.svg)](https://david-dm.org/nashwaan/xml-js)
-[![Package Quality](http://npm.packagequality.com/shield/xml-js.svg)](http://packagequality.com/#?package=xml-js)
+Maintenance is limited to this parsing-state fix, its regressions and package
+compatibility. This is not a general rewrite or a commitment to resolve all
+upstream issues. Existing malformed-XML quirks are outside this change.
+
+**Publication status: unreleased.** The package is prepared as
+`@artrv/xml-js@1.6.12` with public npm publication configured. Registry publication
+and authorization for the `@artrv` scope still need to be verified by the owner.
+**`npm install xml-js` installs upstream, without this fix.** No npm release of
+this fork is claimed here.
+
+See [FORK.md](FORK.md) for provenance, development, ownership diagnostics,
+verification results and the release checklist; see [CHANGELOG.md](CHANGELOG.md)
+for unreleased changes. Original MIT attribution is retained in [LICENSE](LICENSE).
 
 # Synopsis
 
@@ -88,20 +98,47 @@ Tip: You can reduce the output size by using shorter [key names](#options-for-ch
 
 ## Installation
 
-```
-npm install --save xml-js
+Until this fork is published, build a local tarball
+from this fork (Node 20+ and npm 10 for development):
+
+```sh
+git clone https://github.com/artrv/xml-js.git
+cd xml-js
+npm ci --ignore-scripts
+npm test
+npm pack
 ```
 
-You can also install it globally to use it as a command line convertor (see [Command Line](#command-line)).
+Install the resulting tarball in a separate project:
 
+```sh
+npm install /absolute/path/to/artrv-xml-js-1.6.12.tgz
 ```
-npm install --global xml-js
+
+The examples use the configured package name `@artrv/xml-js`. Install the local
+tarball before running them. Do not substitute `npm install xml-js` when testing
+this fork.
+
+## Browser scripts
+
+The package has no `browser` field. Bundlers can consume its CommonJS `main`;
+plain browser pages can load either distributed script, which exports the four
+functions directly on `window`:
+
+```html
+<script src="./node_modules/@artrv/xml-js/dist/xml-js.min.js"></script>
+<script>
+  console.log(window.xml2js('<root/>', {compact: true}));
+</script>
 ```
+
+`dist/xml-js.js` is the unminified equivalent. Both contain the corrected parser
+and SAX 1.4.1, and are rebuilt by `npm pack`.
 
 ## Quick start
 
 ```js
-var convert = require('xml-js');
+var convert = require('@artrv/xml-js');
 var xml =
 '<?xml version="1.0" encoding="utf-8"?>' +
 '<note importance="high" logged="true">' +
@@ -116,7 +153,7 @@ console.log(result1, '\n', result2);
 
 To see the result of this code, see the output above in [Synopsis](#synopsis) section.
 
-Or [run and edit](https://runkit.com/587874e079a2f60013c1f5ac/587874e079a2f60013c1f5ad) this code live in the browser.
+The [original upstream live example](https://runkit.com/587874e079a2f60013c1f5ac/587874e079a2f60013c1f5ad) uses upstream, not this fork.
 
 ## Sample Conversions
 
@@ -137,7 +174,7 @@ Or [run and edit](https://runkit.com/587874e079a2f60013c1f5ac/587874e079a2f60013
 
 This library provides 4 functions: `js2xml()`, `json2xml()`, `xml2js()`, and `xml2json()`. Here are the usages for each one (see more details in the following sections):
 ```js
-var convert = require('xml-js');
+var convert = require('@artrv/xml-js');
 result = convert.js2xml(js, options);     // to convert javascript object to xml text
 result = convert.json2xml(json, options); // to convert json text to xml text
 result = convert.xml2js(xml, options);    // to convert xml text to javascript object
@@ -149,7 +186,7 @@ result = convert.xml2json(xml, options);  // to convert xml text to json text
 To convert JavaScript object to XML text, use `js2xml()`. To convert JSON text to XML text, use `json2xml()`.
 
 ```js
-var convert = require('xml-js');
+var convert = require('@artrv/xml-js');
 var json = require('fs').readFileSync('test.json', 'utf8');
 var options = {compact: true, ignoreComment: true, spaces: 4};
 var result = convert.json2xml(json, options);
@@ -182,7 +219,7 @@ The below options are applicable for both `js2xml()` and `json2xml()` functions.
 To convert XML text to JavaScript object, use `xml2js()`. To convert XML text to JSON text, use `xml2json()`.
 
 ```js
-var convert = require('xml-js');
+var convert = require('@artrv/xml-js');
 var xml = require('fs').readFileSync('test.xml', 'utf8');
 var options = {ignoreComment: true, alwaysChildren: true};
 var result = convert.xml2js(xml, options); // or convert.xml2json(xml, options)
@@ -248,7 +285,7 @@ Two default values mean the first is used for *non-compact* output and the secon
 For XML → JS object / JSON, following custom callback functions can be supplied:
 
 ```js
-var convert = require('xml-js');
+var convert = require('@artrv/xml-js');
 var xml = '<foo:Name>Ali</Name> <bar:Age>30</bar:Age>';
 var options = {compact: true, elementNameFn: function(val) {return val.replace('foo:','').toUpperCase();}};
 var result = convert.xml2json(xml, options);
@@ -271,7 +308,7 @@ console.log(result); // {"NAME":{"_text":"Ali"},"BAR:AGE":{"_text":"30"}}
 For JS object / JSON → XML, following custom callback functions can be supplied:
 
 ```js
-var convert = require('xml-js');
+var convert = require('@artrv/xml-js');
 var json = '{"name":{"_text":"Ali"},"age":{"_text":"30"}}';
 var options = {compact: true, textFn: function(val, elementName) {return elementName === 'age'? val + '';}};
 var result = convert.json2xml(json, options);
@@ -299,7 +336,7 @@ Because any good library should support command line usage, this library is no d
 ## As Globally Accessible Command
 
 ```
-npm install -g xml-js                       // install this library globally
+npm install -g /absolute/path/to/artrv-xml-js-1.6.12.tgz // local fork tarball
 xml-js test.json --spaces 4                 // xml result will be printed on screen
 xml-js test.json --spaces 4 --out test.xml  // xml result will be saved to test.xml
 xml-js test.xml --spaces 4                  // json result will be printed on screen
@@ -311,14 +348,14 @@ xml-js test.xml --spaces 4 --out test.json  // json result will be saved to test
 If you want to use it as script in package.json (can also be helpful in [task automation via npm scripts](http://blog.keithcirkel.co.uk/how-to-use-npm-as-a-build-tool/))
 
 ```
-npm install --save xml-js   // no need to install this library globally
+npm install --save /absolute/path/to/artrv-xml-js-1.6.12.tgz
 ```
 
 In package.json, write a script:
 ```json
 ...
   "dependencies": {
-    "xml-js": "latest"
+    "@artrv/xml-js": "file:/absolute/path/to/artrv-xml-js-1.6.12.tgz"
   },
   "scripts": {
     "convert": "xml-js test.json --spaces 4"
@@ -372,19 +409,15 @@ Options:
 
 ## Testing
 
-To perform tests on this project, download the full repository from GitHub (not from npm) and then do the following:
-
-```
-cd xml-js
-npm install
-npm test
-```
-For live testing, use `npm start` instead of `npm test`.
+Use `npm ci --ignore-scripts`, `npm test`, and `npm run verify:package` from an
+independent checkout. The last command also needs Chromium (or `CHROME_BIN`) and
+checks a freshly installed local tarball outside the checkout. See [FORK.md](FORK.md)
+for requirements, commands and the distinction between runtime and diagnostic tests.
 
 ## Reporting
 
-Use [this link](https://github.com/nashwaan/xml-js/issues) to report an issue or bug. Please include a sample code where the code is failing.
+Use [the fork issue tracker](https://github.com/artrv/xml-js/issues) to report an issue or bug. Please include a sample code where the code is failing.
 
 # License
 
-[MIT](https://github.com/nashwaan/xml-js/blob/master/LICENSE)
+[MIT](LICENSE), Copyright (c) 2016-2017 Yousuf Almarzooqi.

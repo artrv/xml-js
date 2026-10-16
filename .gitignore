@@ -4,3 +4,6 @@ test/coverage-jasmine/
 test/coverage-jest/
 test/fixtures/
 npm-debug.log
+doc/xml-js.js
+doc/xml-js.min.js
+*.tgz

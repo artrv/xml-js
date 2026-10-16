@@ -3814,313 +3814,318 @@ var expat /*= require('node-expat');*/ = { on: function () { }, parse: function 
 var helper = __webpack_require__(12);
 var isArray = __webpack_require__(13).isArray;
 
-var options;
 var pureJsParser = true;
-var currentElement;
 
-function validateOptions(userOptions) {
-  options = helper.copyOptions(userOptions);
-  helper.ensureFlagExists('ignoreDeclaration', options);
-  helper.ensureFlagExists('ignoreInstruction', options);
-  helper.ensureFlagExists('ignoreAttributes', options);
-  helper.ensureFlagExists('ignoreText', options);
-  helper.ensureFlagExists('ignoreComment', options);
-  helper.ensureFlagExists('ignoreCdata', options);
-  helper.ensureFlagExists('ignoreDoctype', options);
-  helper.ensureFlagExists('compact', options);
-  helper.ensureFlagExists('alwaysChildren', options);
-  helper.ensureFlagExists('addParent', options);
-  helper.ensureFlagExists('trim', options);
-  helper.ensureFlagExists('nativeType', options);
-  helper.ensureFlagExists('sanitize', options);
-  helper.ensureFlagExists('instructionHasAttributes', options);
-  helper.ensureFlagExists('captureSpacesBetweenElements', options);
-  helper.ensureAlwaysArrayExists(options);
-  helper.ensureKeyExists('declaration', options);
-  helper.ensureKeyExists('instruction', options);
-  helper.ensureKeyExists('attributes', options);
-  helper.ensureKeyExists('text', options);
-  helper.ensureKeyExists('comment', options);
-  helper.ensureKeyExists('cdata', options);
-  helper.ensureKeyExists('doctype', options);
-  helper.ensureKeyExists('type', options);
-  helper.ensureKeyExists('name', options);
-  helper.ensureKeyExists('elements', options);
-  helper.ensureKeyExists('parent', options);
-  helper.checkFnExists('doctype', options);
-  helper.checkFnExists('instruction', options);
-  helper.checkFnExists('cdata', options);
-  helper.checkFnExists('comment', options);
-  helper.checkFnExists('text', options);
-  helper.checkFnExists('instructionName', options);
-  helper.checkFnExists('elementName', options);
-  helper.checkFnExists('attributeName', options);
-  helper.checkFnExists('attributeValue', options);
-  helper.checkFnExists('attributes', options);
-  return options;
-}
+module.exports = function (xml, userOptions) {
+  // Each SAX handler closes over this invocation, including nested calls.
+  var options;
+  var currentElement;
 
-function nativeType(value) {
-  var nValue = Number(value);
-  if (!isNaN(nValue)) {
-    return nValue;
+  function validateOptions(userOptions) {
+    options = helper.copyOptions(userOptions);
+    helper.ensureFlagExists('ignoreDeclaration', options);
+    helper.ensureFlagExists('ignoreInstruction', options);
+    helper.ensureFlagExists('ignoreAttributes', options);
+    helper.ensureFlagExists('ignoreText', options);
+    helper.ensureFlagExists('ignoreComment', options);
+    helper.ensureFlagExists('ignoreCdata', options);
+    helper.ensureFlagExists('ignoreDoctype', options);
+    helper.ensureFlagExists('compact', options);
+    helper.ensureFlagExists('alwaysChildren', options);
+    helper.ensureFlagExists('addParent', options);
+    helper.ensureFlagExists('trim', options);
+    helper.ensureFlagExists('nativeType', options);
+    helper.ensureFlagExists('nativeTypeAttributes', options);
+    helper.ensureFlagExists('sanitize', options);
+    helper.ensureFlagExists('instructionHasAttributes', options);
+    helper.ensureFlagExists('captureSpacesBetweenElements', options);
+    helper.ensureAlwaysArrayExists(options);
+    helper.ensureKeyExists('declaration', options);
+    helper.ensureKeyExists('instruction', options);
+    helper.ensureKeyExists('attributes', options);
+    helper.ensureKeyExists('text', options);
+    helper.ensureKeyExists('comment', options);
+    helper.ensureKeyExists('cdata', options);
+    helper.ensureKeyExists('doctype', options);
+    helper.ensureKeyExists('type', options);
+    helper.ensureKeyExists('name', options);
+    helper.ensureKeyExists('elements', options);
+    helper.ensureKeyExists('parent', options);
+    helper.checkFnExists('doctype', options);
+    helper.checkFnExists('instruction', options);
+    helper.checkFnExists('cdata', options);
+    helper.checkFnExists('comment', options);
+    helper.checkFnExists('text', options);
+    helper.checkFnExists('instructionName', options);
+    helper.checkFnExists('elementName', options);
+    helper.checkFnExists('attributeName', options);
+    helper.checkFnExists('attributeValue', options);
+    helper.checkFnExists('attributes', options);
+    return options;
   }
-  var bValue = value.toLowerCase();
-  if (bValue === 'true') {
-    return true;
-  } else if (bValue === 'false') {
-    return false;
-  }
-  return value;
-}
 
-function addField(type, value) {
-  var key;
-  if (options.compact) {
-    if (
-      !currentElement[options[type + 'Key']] &&
-      (isArray(options.alwaysArray) ? options.alwaysArray.indexOf(options[type + 'Key']) !== -1 : options.alwaysArray)
-    ) {
-      currentElement[options[type + 'Key']] = [];
+  function nativeType(value) {
+    var nValue = Number(value);
+    if (!isNaN(nValue)) {
+      return nValue;
     }
-    if (currentElement[options[type + 'Key']] && !isArray(currentElement[options[type + 'Key']])) {
-      currentElement[options[type + 'Key']] = [currentElement[options[type + 'Key']]];
+    var bValue = value.toLowerCase();
+    if (bValue === 'true') {
+      return true;
+    } else if (bValue === 'false') {
+      return false;
     }
-    if (type + 'Fn' in options && typeof value === 'string') {
-      value = options[type + 'Fn'](value, currentElement);
-    }
-    if (type === 'instruction' && ('instructionFn' in options || 'instructionNameFn' in options)) {
-      for (key in value) {
-        if (value.hasOwnProperty(key)) {
+    return value;
+  }
+
+  function addField(type, value) {
+    var key;
+    if (options.compact) {
+      if (
+        !currentElement[options[type + 'Key']] &&
+        (isArray(options.alwaysArray) ? options.alwaysArray.indexOf(options[type + 'Key']) !== -1 : options.alwaysArray)
+      ) {
+        currentElement[options[type + 'Key']] = [];
+      }
+      if (currentElement[options[type + 'Key']] && !isArray(currentElement[options[type + 'Key']])) {
+        currentElement[options[type + 'Key']] = [currentElement[options[type + 'Key']]];
+      }
+      if (type + 'Fn' in options && typeof value === 'string') {
+        value = options[type + 'Fn'](value, currentElement);
+      }
+      if (type === 'instruction' && ('instructionFn' in options || 'instructionNameFn' in options)) {
+        for (key in value) {
+          if (value.hasOwnProperty(key)) {
+            if ('instructionFn' in options) {
+              value[key] = options.instructionFn(value[key], key, currentElement);
+            } else {
+              var temp = value[key];
+              delete value[key];
+              value[options.instructionNameFn(key, temp, currentElement)] = temp;
+            }
+          }
+        }
+      }
+      if (isArray(currentElement[options[type + 'Key']])) {
+        currentElement[options[type + 'Key']].push(value);
+      } else {
+        currentElement[options[type + 'Key']] = value;
+      }
+    } else {
+      if (!currentElement[options.elementsKey]) {
+        currentElement[options.elementsKey] = [];
+      }
+      var element = {};
+      element[options.typeKey] = type;
+      if (type === 'instruction') {
+        for (key in value) {
+          if (value.hasOwnProperty(key)) {
+            break;
+          }
+        }
+        element[options.nameKey] = 'instructionNameFn' in options ? options.instructionNameFn(key, value, currentElement) : key;
+        if (options.instructionHasAttributes) {
+          element[options.attributesKey] = value[key][options.attributesKey];
+          if ('instructionFn' in options) {
+            element[options.attributesKey] = options.instructionFn(element[options.attributesKey], key, currentElement);
+          }
+        } else {
           if ('instructionFn' in options) {
             value[key] = options.instructionFn(value[key], key, currentElement);
-          } else {
-            var temp = value[key];
-            delete value[key];
-            value[options.instructionNameFn(key, temp, currentElement)] = temp;
+          }
+          element[options.instructionKey] = value[key];
+        }
+      } else {
+        if (type + 'Fn' in options) {
+          value = options[type + 'Fn'](value, currentElement);
+        }
+        element[options[type + 'Key']] = value;
+      }
+      if (options.addParent) {
+        element[options.parentKey] = currentElement;
+      }
+      currentElement[options.elementsKey].push(element);
+    }
+  }
+
+  function manipulateAttributes(attributes) {
+    if ('attributesFn' in options && attributes) {
+      attributes = options.attributesFn(attributes, currentElement);
+    }
+    if ((options.trim || 'attributeValueFn' in options || 'attributeNameFn' in options || options.nativeTypeAttributes) && attributes) {
+      var key;
+      for (key in attributes) {
+        if (attributes.hasOwnProperty(key)) {
+          if (options.trim) attributes[key] = attributes[key].trim();
+          if (options.nativeTypeAttributes) {
+            attributes[key] = nativeType(attributes[key]);
+          }
+          if ('attributeValueFn' in options) attributes[key] = options.attributeValueFn(attributes[key], key, currentElement);
+          if ('attributeNameFn' in options) {
+            var temp = attributes[key];
+            delete attributes[key];
+            attributes[options.attributeNameFn(key, attributes[key], currentElement)] = temp;
           }
         }
       }
     }
-    if (isArray(currentElement[options[type + 'Key']])) {
-      currentElement[options[type + 'Key']].push(value);
-    } else {
-      currentElement[options[type + 'Key']] = value;
-    }
-  } else {
-    if (!currentElement[options.elementsKey]) {
-      currentElement[options.elementsKey] = [];
-    }
-    var element = {};
-    element[options.typeKey] = type;
-    if (type === 'instruction') {
-      for (key in value) {
-        if (value.hasOwnProperty(key)) {
-          break;
-        }
+    return attributes;
+  }
+
+  function onInstruction(instruction) {
+    var attributes = {};
+    if (instruction.body && (instruction.name.toLowerCase() === 'xml' || options.instructionHasAttributes)) {
+      var attrsRegExp = /([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|(\w+))\s*/g;
+      var match;
+      while ((match = attrsRegExp.exec(instruction.body)) !== null) {
+        attributes[match[1]] = match[2] || match[3] || match[4];
       }
-      element[options.nameKey] = 'instructionNameFn' in options ? options.instructionNameFn(key, value, currentElement) : key;
-      if (options.instructionHasAttributes) {
-        element[options.attributesKey] = value[key][options.attributesKey];
-        if ('instructionFn' in options) {
-          element[options.attributesKey] = options.instructionFn(element[options.attributesKey], key, currentElement);
-        }
+      attributes = manipulateAttributes(attributes);
+    }
+    if (instruction.name.toLowerCase() === 'xml') {
+      if (options.ignoreDeclaration) {
+        return;
+      }
+      currentElement[options.declarationKey] = {};
+      if (Object.keys(attributes).length) {
+        currentElement[options.declarationKey][options.attributesKey] = attributes;
+      }
+      if (options.addParent) {
+        currentElement[options.declarationKey][options.parentKey] = currentElement;
+      }
+    } else {
+      if (options.ignoreInstruction) {
+        return;
+      }
+      if (options.trim) {
+        instruction.body = instruction.body.trim();
+      }
+      var value = {};
+      if (options.instructionHasAttributes && Object.keys(attributes).length) {
+        value[instruction.name] = {};
+        value[instruction.name][options.attributesKey] = attributes;
       } else {
-        if ('instructionFn' in options) {
-          value[key] = options.instructionFn(value[key], key, currentElement);
-        }
-        element[options.instructionKey] = value[key];
+        value[instruction.name] = instruction.body;
       }
-    } else {
-      if (type + 'Fn' in options) {
-        value = options[type + 'Fn'](value, currentElement);
-      }
-      element[options[type + 'Key']] = value;
+      addField('instruction', value);
     }
-    if (options.addParent) {
-      element[options.parentKey] = currentElement;
-    }
-    currentElement[options.elementsKey].push(element);
   }
-}
 
-function manipulateAttributes(attributes) {
-  if ('attributesFn' in options && attributes) {
-    attributes = options.attributesFn(attributes, currentElement);
-  }
-  if ((options.trim || 'attributeValueFn' in options || 'attributeNameFn' in options) && attributes) {
-    var key;
-    for (key in attributes) {
-      if (attributes.hasOwnProperty(key)) {
-        if (options.trim) attributes[key] = attributes[key].trim();
-        if ('attributeValueFn' in options) attributes[key] = options.attributeValueFn(attributes[key], key, currentElement);
-        if ('attributeNameFn' in options) {
-          var temp = attributes[key];
-          delete attributes[key];
-          attributes[options.attributeNameFn(key, attributes[key], currentElement)] = temp;
-        }
-      }
-    }
-  }
-  return attributes;
-}
-
-function onInstruction(instruction) {
-  var attributes = {};
-  if (instruction.body && (instruction.name.toLowerCase() === 'xml' || options.instructionHasAttributes)) {
-    var attrsRegExp = /([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|(\w+))\s*/g;
-    var match;
-    while ((match = attrsRegExp.exec(instruction.body)) !== null) {
-      attributes[match[1]] = match[2] || match[3] || match[4];
+  function onStartElement(name, attributes) {
+    var element;
+    if (typeof name === 'object') {
+      attributes = name.attributes;
+      name = name.name;
     }
     attributes = manipulateAttributes(attributes);
+    if ('elementNameFn' in options) {
+      name = options.elementNameFn(name, currentElement);
+    }
+    if (options.compact) {
+      element = {};
+      if (!options.ignoreAttributes && attributes && Object.keys(attributes).length) {
+        element[options.attributesKey] = {};
+        var key;
+        for (key in attributes) {
+          if (attributes.hasOwnProperty(key)) {
+            element[options.attributesKey][key] = attributes[key];
+          }
+        }
+      }
+      if (
+        !(name in currentElement) &&
+        (isArray(options.alwaysArray) ? options.alwaysArray.indexOf(name) !== -1 : options.alwaysArray)
+      ) {
+        currentElement[name] = [];
+      }
+      if (currentElement[name] && !isArray(currentElement[name])) {
+        currentElement[name] = [currentElement[name]];
+      }
+      if (isArray(currentElement[name])) {
+        currentElement[name].push(element);
+      } else {
+        currentElement[name] = element;
+      }
+    } else {
+      if (!currentElement[options.elementsKey]) {
+        currentElement[options.elementsKey] = [];
+      }
+      element = {};
+      element[options.typeKey] = 'element';
+      element[options.nameKey] = name;
+      if (!options.ignoreAttributes && attributes && Object.keys(attributes).length) {
+        element[options.attributesKey] = attributes;
+      }
+      if (options.alwaysChildren) {
+        element[options.elementsKey] = [];
+      }
+      currentElement[options.elementsKey].push(element);
+    }
+    element[options.parentKey] = currentElement; // will be deleted in onEndElement() if !options.addParent
+    currentElement = element;
   }
-  if (instruction.name.toLowerCase() === 'xml') {
-    if (options.ignoreDeclaration) {
+
+  function onText(text) {
+    if (options.ignoreText) {
       return;
     }
-    currentElement[options.declarationKey] = {};
-    if (Object.keys(attributes).length) {
-      currentElement[options.declarationKey][options.attributesKey] = attributes;
-    }
-    if (options.addParent) {
-      currentElement[options.declarationKey][options.parentKey] = currentElement;
-    }
-  } else {
-    if (options.ignoreInstruction) {
+    if (!text.trim() && !options.captureSpacesBetweenElements) {
       return;
     }
     if (options.trim) {
-      instruction.body = instruction.body.trim();
+      text = text.trim();
     }
-    var value = {};
-    if (options.instructionHasAttributes && Object.keys(attributes).length) {
-      value[instruction.name] = {};
-      value[instruction.name][options.attributesKey] = attributes;
-    } else {
-      value[instruction.name] = instruction.body;
+    if (options.nativeType) {
+      text = nativeType(text);
     }
-    addField('instruction', value);
+    if (options.sanitize) {
+      text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    addField('text', text);
   }
-}
 
-function onStartElement(name, attributes) {
-  var element;
-  if (typeof name === 'object') {
-    attributes = name.attributes;
-    name = name.name;
-  }
-  attributes = manipulateAttributes(attributes);
-  if ('elementNameFn' in options) {
-    name = options.elementNameFn(name, currentElement);
-  }
-  if (options.compact) {
-    element = {};
-    if (!options.ignoreAttributes && attributes && Object.keys(attributes).length) {
-      element[options.attributesKey] = {};
-      var key;
-      for (key in attributes) {
-        if (attributes.hasOwnProperty(key)) {
-          element[options.attributesKey][key] = attributes[key];
-        }
-      }
+  function onComment(comment) {
+    if (options.ignoreComment) {
+      return;
     }
-    if (
-      !(name in currentElement) &&
-      (isArray(options.alwaysArray) ? options.alwaysArray.indexOf(name) !== -1 : options.alwaysArray)
-    ) {
-      currentElement[name] = [];
+    if (options.trim) {
+      comment = comment.trim();
     }
-    if (currentElement[name] && !isArray(currentElement[name])) {
-      currentElement[name] = [currentElement[name]];
+    addField('comment', comment);
+  }
+
+  function onEndElement(name) {
+    var parentElement = currentElement[options.parentKey];
+    if (!options.addParent) {
+      delete currentElement[options.parentKey];
     }
-    if (isArray(currentElement[name])) {
-      currentElement[name].push(element);
-    } else {
-      currentElement[name] = element;
+    currentElement = parentElement;
+  }
+
+  function onCdata(cdata) {
+    if (options.ignoreCdata) {
+      return;
     }
-  } else {
-    if (!currentElement[options.elementsKey]) {
-      currentElement[options.elementsKey] = [];
+    if (options.trim) {
+      cdata = cdata.trim();
     }
-    element = {};
-    element[options.typeKey] = 'element';
-    element[options.nameKey] = name;
-    if (!options.ignoreAttributes && attributes && Object.keys(attributes).length) {
-      element[options.attributesKey] = attributes;
+    addField('cdata', cdata);
+  }
+
+  function onDoctype(doctype) {
+    if (options.ignoreDoctype) {
+      return;
     }
-    if (options.alwaysChildren) {
-      element[options.elementsKey] = [];
+    doctype = doctype.replace(/^ /, '');
+    if (options.trim) {
+      doctype = doctype.trim();
     }
-    currentElement[options.elementsKey].push(element);
+    addField('doctype', doctype);
   }
-  element[options.parentKey] = currentElement; // will be deleted in onEndElement() if !options.addParent
-  currentElement = element;
-}
 
-function onText(text) {
-  if (options.ignoreText) {
-    return;
+  function onError(error) {
+    error.note = error; //console.error(error);
   }
-  if (!text.trim() && !options.captureSpacesBetweenElements) {
-    return;
-  }
-  if (options.trim) {
-    text = text.trim();
-  }
-  if (options.nativeType) {
-    text = nativeType(text);
-  }
-  if (options.sanitize) {
-    text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-  addField('text', text);
-}
-
-function onComment(comment) {
-  if (options.ignoreComment) {
-    return;
-  }
-  if (options.trim) {
-    comment = comment.trim();
-  }
-  addField('comment', comment);
-}
-
-function onEndElement(name) {
-  var parentElement = currentElement[options.parentKey];
-  if (!options.addParent) {
-    delete currentElement[options.parentKey];
-  }
-  currentElement = parentElement;
-}
-
-function onCdata(cdata) {
-  if (options.ignoreCdata) {
-    return;
-  }
-  if (options.trim) {
-    cdata = cdata.trim();
-  }
-  addField('cdata', cdata);
-}
-
-function onDoctype(doctype) {
-  if (options.ignoreDoctype) {
-    return;
-  }
-  doctype = doctype.replace(/^ /, '');
-  if (options.trim) {
-    doctype = doctype.trim();
-  }
-  addField('doctype', doctype);
-}
-
-function onError(error) {
-  error.note = error; //console.error(error);
-}
-
-module.exports = function (xml, userOptions) {
 
   var parser = pureJsParser ? sax.parser(true, {}) : parser = new expat.Parser('UTF-8');
   var result = {};
@@ -5563,21 +5568,21 @@ function writeAttributes(attributes, options, depth) {
   if ('attributesFn' in options) {
     attributes = options.attributesFn(attributes, currentElementName, currentElement);
   }
-  var key, attr, attrName, quote, result = '';
+  var key, attr, attrName, quote, result = [];
   for (key in attributes) {
-    if (attributes.hasOwnProperty(key)) {
+    if (attributes.hasOwnProperty(key) && attributes[key] !== null && attributes[key] !== undefined) {
       quote = options.noQuotesForNativeAttributes && typeof attributes[key] !== 'string' ? '' : '"';
       attr = '' + attributes[key]; // ensure number and boolean are converted to String
       attr = attr.replace(/"/g, '&quot;');
       attrName = 'attributeNameFn' in options ? options.attributeNameFn(key, attr, currentElementName, currentElement) : key;
-      result += (options.spaces && options.indentAttributes? writeIndentation(options, depth+1, false) : ' ');
-      result += attrName + '=' + quote + ('attributeValueFn' in options ? options.attributeValueFn(attr, key, currentElementName, currentElement) : attr) + quote;
+      result.push((options.spaces && options.indentAttributes? writeIndentation(options, depth+1, false) : ' '));
+      result.push(attrName + '=' + quote + ('attributeValueFn' in options ? options.attributeValueFn(attr, key, currentElementName, currentElement) : attr) + quote);
     }
   }
   if (attributes && Object.keys(attributes).length && options.spaces && options.indentAttributes) {
-    result += writeIndentation(options, depth, false);
+    result.push(writeIndentation(options, depth, false));
   }
-  return result;
+  return result.join('');
 }
 
 function writeDeclaration(declaration, options, depth) {
@@ -5613,7 +5618,7 @@ function writeComment(comment, options) {
 }
 
 function writeCdata(cdata, options) {
-  return options.ignoreCdata ? '' : '<![CDATA[' + ('cdataFn' in options ? options.cdataFn(cdata, currentElementName, currentElement) : cdata) + ']]>';
+  return options.ignoreCdata ? '' : '<![CDATA[' + ('cdataFn' in options ? options.cdataFn(cdata, currentElementName, currentElement) : cdata.replace(']]>', ']]]]><![CDATA[>')) + ']]>';
 }
 
 function writeDoctype(doctype, options) {
@@ -5663,10 +5668,10 @@ function hasContent(element, options) {
 function writeElement(element, options, depth) {
   currentElement = element;
   currentElementName = element.name;
-  var xml = '', elementName = 'elementNameFn' in options ? options.elementNameFn(element.name, element) : element.name;
-  xml += '<' + elementName;
+  var xml = [], elementName = 'elementNameFn' in options ? options.elementNameFn(element.name, element) : element.name;
+  xml.push('<' + elementName);
   if (element[options.attributesKey]) {
-    xml += writeAttributes(element[options.attributesKey], options, depth);
+    xml.push(writeAttributes(element[options.attributesKey], options, depth));
   }
   var withClosingTag = element[options.elementsKey] && element[options.elementsKey].length || element[options.attributesKey] && element[options.attributesKey]['xml:space'] === 'preserve';
   if (!withClosingTag) {
@@ -5677,18 +5682,18 @@ function writeElement(element, options, depth) {
     }
   }
   if (withClosingTag) {
-    xml += '>';
+    xml.push('>');
     if (element[options.elementsKey] && element[options.elementsKey].length) {
-      xml += writeElements(element[options.elementsKey], options, depth + 1);
+      xml.push(writeElements(element[options.elementsKey], options, depth + 1));
       currentElement = element;
       currentElementName = element.name;
     }
-    xml += options.spaces && hasContent(element, options) ? '\n' + Array(depth + 1).join(options.spaces) : '';
-    xml += '</' + elementName + '>';
+    xml.push(options.spaces && hasContent(element, options) ? '\n' + Array(depth + 1).join(options.spaces) : '');
+    xml.push('</' + elementName + '>');
   } else {
-    xml += '/>';
+    xml.push('/>');
   }
-  return xml;
+  return xml.join('');
 }
 
 function writeElements(elements, options, depth, firstLine) {
@@ -5746,18 +5751,18 @@ function writeElementCompact(element, name, options, depth, indent) {
   currentElement = element;
   currentElementName = name;
   var elementName = 'elementNameFn' in options ? options.elementNameFn(name, element) : name;
-  if (typeof element === 'undefined' || element === null) {
+  if (typeof element === 'undefined' || element === null || element === '') {
     return 'fullTagEmptyElementFn' in options && options.fullTagEmptyElementFn(name, element) || options.fullTagEmptyElement ? '<' + elementName + '></' + elementName + '>' : '<' + elementName + '/>';
   }
-  var xml = '';
+  var xml = [];
   if (name) {
-    xml += '<' + elementName;
+    xml.push('<' + elementName);
     if (typeof element !== 'object') {
-      xml += '>' + writeText(element,options) + '</' + elementName + '>';
-      return xml;
+      xml.push('>' + writeText(element,options) + '</' + elementName + '>');
+      return xml.join('');
     }
     if (element[options.attributesKey]) {
-      xml += writeAttributes(element[options.attributesKey], options, depth);
+      xml.push(writeAttributes(element[options.attributesKey], options, depth));
     }
     var withClosingTag = hasContentCompact(element, options, true) || element[options.attributesKey] && element[options.attributesKey]['xml:space'] === 'preserve';
     if (!withClosingTag) {
@@ -5768,60 +5773,60 @@ function writeElementCompact(element, name, options, depth, indent) {
       }
     }
     if (withClosingTag) {
-      xml += '>';
+      xml.push('>');
     } else {
-      xml += '/>';
-      return xml;
+      xml.push('/>');
+      return xml.join('');
     }
   }
-  xml += writeElementsCompact(element, options, depth + 1, false);
+  xml.push(writeElementsCompact(element, options, depth + 1, false));
   currentElement = element;
   currentElementName = name;
   if (name) {
-    xml += (indent ? writeIndentation(options, depth, false) : '') + '</' + elementName + '>';
+    xml.push((indent ? writeIndentation(options, depth, false) : '') + '</' + elementName + '>');
   }
-  return xml;
+  return xml.join('');
 }
 
 function writeElementsCompact(element, options, depth, firstLine) {
-  var i, key, nodes, xml = '';
+  var i, key, nodes, xml = [];
   for (key in element) {
     if (element.hasOwnProperty(key)) {
       nodes = isArray(element[key]) ? element[key] : [element[key]];
       for (i = 0; i < nodes.length; ++i) {
         switch (key) {
-        case options.declarationKey: xml += writeDeclaration(nodes[i], options, depth); break;
-        case options.instructionKey: xml += (options.indentInstruction ? writeIndentation(options, depth, firstLine) : '') + writeInstruction(nodes[i], options, depth); break;
+        case options.declarationKey: xml.push(writeDeclaration(nodes[i], options, depth)); break;
+        case options.instructionKey: xml.push((options.indentInstruction ? writeIndentation(options, depth, firstLine) : '') + writeInstruction(nodes[i], options, depth)); break;
         case options.attributesKey: case options.parentKey: break; // skip
-        case options.textKey: xml += (options.indentText ? writeIndentation(options, depth, firstLine) : '') + writeText(nodes[i], options); break;
-        case options.cdataKey: xml += (options.indentCdata ? writeIndentation(options, depth, firstLine) : '') + writeCdata(nodes[i], options); break;
-        case options.doctypeKey: xml += writeIndentation(options, depth, firstLine) + writeDoctype(nodes[i], options); break;
-        case options.commentKey: xml += writeIndentation(options, depth, firstLine) + writeComment(nodes[i], options); break;
-        default: xml += writeIndentation(options, depth, firstLine) + writeElementCompact(nodes[i], key, options, depth, hasContentCompact(nodes[i], options));
+        case options.textKey: xml.push((options.indentText ? writeIndentation(options, depth, firstLine) : '') + writeText(nodes[i], options)); break;
+        case options.cdataKey: xml.push((options.indentCdata ? writeIndentation(options, depth, firstLine) : '') + writeCdata(nodes[i], options)); break;
+        case options.doctypeKey: xml.push(writeIndentation(options, depth, firstLine) + writeDoctype(nodes[i], options)); break;
+        case options.commentKey: xml.push(writeIndentation(options, depth, firstLine) + writeComment(nodes[i], options)); break;
+        default: xml.push(writeIndentation(options, depth, firstLine) + writeElementCompact(nodes[i], key, options, depth, hasContentCompact(nodes[i], options)));
         }
-        firstLine = firstLine && !xml;
+        firstLine = firstLine && !xml.length;
       }
     }
   }
-  return xml;
+  return xml.join('');
 }
 
 module.exports = function (js, options) {
   options = validateOptions(options);
-  var xml = '';
+  var xml = [];
   currentElement = js;
   currentElementName = '_root_';
   if (options.compact) {
-    xml = writeElementsCompact(js, options, 0, true);
+    xml.push(writeElementsCompact(js, options, 0, true));
   } else {
     if (js[options.declarationKey]) {
-      xml += writeDeclaration(js[options.declarationKey], options, 0);
+      xml.push(writeDeclaration(js[options.declarationKey], options, 0));
     }
     if (js[options.elementsKey] && js[options.elementsKey].length) {
-      xml += writeElements(js[options.elementsKey], options, 0, !xml);
+      xml.push(writeElements(js[options.elementsKey], options, 0, !xml.length));
     }
   }
-  return xml;
+  return xml.join('');
 };
 
 
@@ -5921,6 +5926,12 @@ module.exports = {
       parser.ns = Object.create(rootNS)
     }
 
+    // disallow unquoted attribute values if not otherwise configured
+    // and strict mode is true
+    if (parser.opt.unquotedAttributeValues === undefined) {
+      parser.opt.unquotedAttributeValues = !strict;
+    }
+
     // mostly just for error reporting
     parser.trackPosition = parser.opt.position !== false
     if (parser.trackPosition) {
@@ -6014,6 +6025,7 @@ module.exports = {
   } catch (ex) {
     Stream = function () {}
   }
+  if (!Stream) Stream = function () {}
 
   var streamWraps = sax.EVENTS.filter(function (ev) {
     return ev !== 'error' && ev !== 'end'
@@ -6939,15 +6951,22 @@ module.exports = {
           continue
 
         case S.SGML_DECL:
-          if ((parser.sgmlDecl + c).toUpperCase() === CDATA) {
+          if (parser.sgmlDecl + c === '--') {
+            parser.state = S.COMMENT
+            parser.comment = ''
+            parser.sgmlDecl = ''
+            continue;
+          }
+
+          if (parser.doctype && parser.doctype !== true && parser.sgmlDecl) {
+            parser.state = S.DOCTYPE_DTD
+            parser.doctype += '<!' + parser.sgmlDecl + c
+            parser.sgmlDecl = ''
+          } else if ((parser.sgmlDecl + c).toUpperCase() === CDATA) {
             emitNode(parser, 'onopencdata')
             parser.state = S.CDATA
             parser.sgmlDecl = ''
             parser.cdata = ''
-          } else if (parser.sgmlDecl + c === '--') {
-            parser.state = S.COMMENT
-            parser.comment = ''
-            parser.sgmlDecl = ''
           } else if ((parser.sgmlDecl + c).toUpperCase() === DOCTYPE) {
             parser.state = S.DOCTYPE
             if (parser.doctype || parser.sawRoot) {
@@ -7001,12 +7020,18 @@ module.exports = {
           continue
 
         case S.DOCTYPE_DTD:
-          parser.doctype += c
           if (c === ']') {
+            parser.doctype += c
             parser.state = S.DOCTYPE
+          } else if (c === '<') {
+            parser.state = S.OPEN_WAKA
+            parser.startTagPosition = parser.position
           } else if (isQuote(c)) {
+            parser.doctype += c
             parser.state = S.DOCTYPE_DTD_QUOTED
             parser.q = c
+          } else {
+            parser.doctype += c
           }
           continue
 
@@ -7047,6 +7072,8 @@ module.exports = {
             // which is a comment of " blah -- bloo "
             parser.comment += '--' + c
             parser.state = S.COMMENT
+          } else if (parser.doctype && parser.doctype !== true) {
+            parser.state = S.DOCTYPE_DTD
           } else {
             parser.state = S.TEXT
           }
@@ -7214,7 +7241,9 @@ module.exports = {
             parser.q = c
             parser.state = S.ATTRIB_VALUE_QUOTED
           } else {
-            strictFail(parser, 'Unquoted attribute value')
+            if (!parser.opt.unquotedAttributeValues) {
+              error(parser, 'Unquoted attribute value')
+            }
             parser.state = S.ATTRIB_VALUE_UNQUOTED
             parser.attribValue = c
           }
@@ -7332,9 +7361,16 @@ module.exports = {
           }
 
           if (c === ';') {
-            parser[buffer] += parseEntity(parser)
-            parser.entity = ''
-            parser.state = returnState
+            var parsedEntity = parseEntity(parser)
+            if (parser.opt.unparsedEntities && !Object.values(sax.XML_ENTITIES).includes(parsedEntity)) {
+              parser.entity = ''
+              parser.state = returnState
+              parser.write(parsedEntity)
+            } else {
+              parser[buffer] += parsedEntity
+              parser.entity = ''
+              parser.state = returnState
+            }
           } else if (isMatch(parser.entity.length ? entityBody : entityStart, c)) {
             parser.entity += c
           } else {
@@ -7346,8 +7382,9 @@ module.exports = {
 
           continue
 
-        default:
+        default: /* istanbul ignore next */ {
           throw new Error(parser, 'Unknown state: ' + parser.state)
+        }
       }
     } // while
 

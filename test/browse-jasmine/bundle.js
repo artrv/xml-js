@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 (function (process){
 module.exports = {
 
@@ -49,7 +49,7 @@ module.exports = {
 };
 
 }).call(this,require('_process'))
-},{"_process":21}],2:[function(require,module,exports){
+},{"_process":23}],2:[function(require,module,exports){
 module.exports = {
 
   isArray: function(value) {
@@ -138,21 +138,21 @@ function writeAttributes(attributes, options, depth) {
   if ('attributesFn' in options) {
     attributes = options.attributesFn(attributes, currentElementName, currentElement);
   }
-  var key, attr, attrName, quote, result = '';
+  var key, attr, attrName, quote, result = [];
   for (key in attributes) {
-    if (attributes.hasOwnProperty(key)) {
+    if (attributes.hasOwnProperty(key) && attributes[key] !== null && attributes[key] !== undefined) {
       quote = options.noQuotesForNativeAttributes && typeof attributes[key] !== 'string' ? '' : '"';
       attr = '' + attributes[key]; // ensure number and boolean are converted to String
       attr = attr.replace(/"/g, '&quot;');
       attrName = 'attributeNameFn' in options ? options.attributeNameFn(key, attr, currentElementName, currentElement) : key;
-      result += (options.spaces && options.indentAttributes? writeIndentation(options, depth+1, false) : ' ');
-      result += attrName + '=' + quote + ('attributeValueFn' in options ? options.attributeValueFn(attr, key, currentElementName, currentElement) : attr) + quote;
+      result.push((options.spaces && options.indentAttributes? writeIndentation(options, depth+1, false) : ' '));
+      result.push(attrName + '=' + quote + ('attributeValueFn' in options ? options.attributeValueFn(attr, key, currentElementName, currentElement) : attr) + quote);
     }
   }
   if (attributes && Object.keys(attributes).length && options.spaces && options.indentAttributes) {
-    result += writeIndentation(options, depth, false);
+    result.push(writeIndentation(options, depth, false));
   }
-  return result;
+  return result.join('');
 }
 
 function writeDeclaration(declaration, options, depth) {
@@ -188,7 +188,7 @@ function writeComment(comment, options) {
 }
 
 function writeCdata(cdata, options) {
-  return options.ignoreCdata ? '' : '<![CDATA[' + ('cdataFn' in options ? options.cdataFn(cdata, currentElementName, currentElement) : cdata) + ']]>';
+  return options.ignoreCdata ? '' : '<![CDATA[' + ('cdataFn' in options ? options.cdataFn(cdata, currentElementName, currentElement) : cdata.replace(']]>', ']]]]><![CDATA[>')) + ']]>';
 }
 
 function writeDoctype(doctype, options) {
@@ -238,10 +238,10 @@ function hasContent(element, options) {
 function writeElement(element, options, depth) {
   currentElement = element;
   currentElementName = element.name;
-  var xml = '', elementName = 'elementNameFn' in options ? options.elementNameFn(element.name, element) : element.name;
-  xml += '<' + elementName;
+  var xml = [], elementName = 'elementNameFn' in options ? options.elementNameFn(element.name, element) : element.name;
+  xml.push('<' + elementName);
   if (element[options.attributesKey]) {
-    xml += writeAttributes(element[options.attributesKey], options, depth);
+    xml.push(writeAttributes(element[options.attributesKey], options, depth));
   }
   var withClosingTag = element[options.elementsKey] && element[options.elementsKey].length || element[options.attributesKey] && element[options.attributesKey]['xml:space'] === 'preserve';
   if (!withClosingTag) {
@@ -252,18 +252,18 @@ function writeElement(element, options, depth) {
     }
   }
   if (withClosingTag) {
-    xml += '>';
+    xml.push('>');
     if (element[options.elementsKey] && element[options.elementsKey].length) {
-      xml += writeElements(element[options.elementsKey], options, depth + 1);
+      xml.push(writeElements(element[options.elementsKey], options, depth + 1));
       currentElement = element;
       currentElementName = element.name;
     }
-    xml += options.spaces && hasContent(element, options) ? '\n' + Array(depth + 1).join(options.spaces) : '';
-    xml += '</' + elementName + '>';
+    xml.push(options.spaces && hasContent(element, options) ? '\n' + Array(depth + 1).join(options.spaces) : '');
+    xml.push('</' + elementName + '>');
   } else {
-    xml += '/>';
+    xml.push('/>');
   }
-  return xml;
+  return xml.join('');
 }
 
 function writeElements(elements, options, depth, firstLine) {
@@ -321,18 +321,18 @@ function writeElementCompact(element, name, options, depth, indent) {
   currentElement = element;
   currentElementName = name;
   var elementName = 'elementNameFn' in options ? options.elementNameFn(name, element) : name;
-  if (typeof element === 'undefined' || element === null) {
+  if (typeof element === 'undefined' || element === null || element === '') {
     return 'fullTagEmptyElementFn' in options && options.fullTagEmptyElementFn(name, element) || options.fullTagEmptyElement ? '<' + elementName + '></' + elementName + '>' : '<' + elementName + '/>';
   }
-  var xml = '';
+  var xml = [];
   if (name) {
-    xml += '<' + elementName;
+    xml.push('<' + elementName);
     if (typeof element !== 'object') {
-      xml += '>' + writeText(element,options) + '</' + elementName + '>';
-      return xml;
+      xml.push('>' + writeText(element,options) + '</' + elementName + '>');
+      return xml.join('');
     }
     if (element[options.attributesKey]) {
-      xml += writeAttributes(element[options.attributesKey], options, depth);
+      xml.push(writeAttributes(element[options.attributesKey], options, depth));
     }
     var withClosingTag = hasContentCompact(element, options, true) || element[options.attributesKey] && element[options.attributesKey]['xml:space'] === 'preserve';
     if (!withClosingTag) {
@@ -343,60 +343,60 @@ function writeElementCompact(element, name, options, depth, indent) {
       }
     }
     if (withClosingTag) {
-      xml += '>';
+      xml.push('>');
     } else {
-      xml += '/>';
-      return xml;
+      xml.push('/>');
+      return xml.join('');
     }
   }
-  xml += writeElementsCompact(element, options, depth + 1, false);
+  xml.push(writeElementsCompact(element, options, depth + 1, false));
   currentElement = element;
   currentElementName = name;
   if (name) {
-    xml += (indent ? writeIndentation(options, depth, false) : '') + '</' + elementName + '>';
+    xml.push((indent ? writeIndentation(options, depth, false) : '') + '</' + elementName + '>');
   }
-  return xml;
+  return xml.join('');
 }
 
 function writeElementsCompact(element, options, depth, firstLine) {
-  var i, key, nodes, xml = '';
+  var i, key, nodes, xml = [];
   for (key in element) {
     if (element.hasOwnProperty(key)) {
       nodes = isArray(element[key]) ? element[key] : [element[key]];
       for (i = 0; i < nodes.length; ++i) {
         switch (key) {
-        case options.declarationKey: xml += writeDeclaration(nodes[i], options, depth); break;
-        case options.instructionKey: xml += (options.indentInstruction ? writeIndentation(options, depth, firstLine) : '') + writeInstruction(nodes[i], options, depth); break;
+        case options.declarationKey: xml.push(writeDeclaration(nodes[i], options, depth)); break;
+        case options.instructionKey: xml.push((options.indentInstruction ? writeIndentation(options, depth, firstLine) : '') + writeInstruction(nodes[i], options, depth)); break;
         case options.attributesKey: case options.parentKey: break; // skip
-        case options.textKey: xml += (options.indentText ? writeIndentation(options, depth, firstLine) : '') + writeText(nodes[i], options); break;
-        case options.cdataKey: xml += (options.indentCdata ? writeIndentation(options, depth, firstLine) : '') + writeCdata(nodes[i], options); break;
-        case options.doctypeKey: xml += writeIndentation(options, depth, firstLine) + writeDoctype(nodes[i], options); break;
-        case options.commentKey: xml += writeIndentation(options, depth, firstLine) + writeComment(nodes[i], options); break;
-        default: xml += writeIndentation(options, depth, firstLine) + writeElementCompact(nodes[i], key, options, depth, hasContentCompact(nodes[i], options));
+        case options.textKey: xml.push((options.indentText ? writeIndentation(options, depth, firstLine) : '') + writeText(nodes[i], options)); break;
+        case options.cdataKey: xml.push((options.indentCdata ? writeIndentation(options, depth, firstLine) : '') + writeCdata(nodes[i], options)); break;
+        case options.doctypeKey: xml.push(writeIndentation(options, depth, firstLine) + writeDoctype(nodes[i], options)); break;
+        case options.commentKey: xml.push(writeIndentation(options, depth, firstLine) + writeComment(nodes[i], options)); break;
+        default: xml.push(writeIndentation(options, depth, firstLine) + writeElementCompact(nodes[i], key, options, depth, hasContentCompact(nodes[i], options)));
         }
-        firstLine = firstLine && !xml;
+        firstLine = firstLine && !xml.length;
       }
     }
   }
-  return xml;
+  return xml.join('');
 }
 
 module.exports = function (js, options) {
   options = validateOptions(options);
-  var xml = '';
+  var xml = [];
   currentElement = js;
   currentElementName = '_root_';
   if (options.compact) {
-    xml = writeElementsCompact(js, options, 0, true);
+    xml.push(writeElementsCompact(js, options, 0, true));
   } else {
     if (js[options.declarationKey]) {
-      xml += writeDeclaration(js[options.declarationKey], options, 0);
+      xml.push(writeDeclaration(js[options.declarationKey], options, 0));
     }
     if (js[options.elementsKey] && js[options.elementsKey].length) {
-      xml += writeElements(js[options.elementsKey], options, 0, !xml);
+      xml.push(writeElements(js[options.elementsKey], options, 0, !xml.length));
     }
   }
-  return xml;
+  return xml.join('');
 };
 
 },{"./array-helper":2,"./options-helper":6}],5:[function(require,module,exports){
@@ -421,7 +421,7 @@ module.exports = function (json, options) {
 };
 
 }).call(this,require("buffer").Buffer)
-},{"./js2xml.js":4,"buffer":11}],6:[function(require,module,exports){
+},{"./js2xml.js":4,"buffer":15}],6:[function(require,module,exports){
 var isArray = require('./array-helper').isArray;
 
 module.exports = {
@@ -472,313 +472,318 @@ var expat /*= require('node-expat');*/ = { on: function () { }, parse: function 
 var helper = require('./options-helper');
 var isArray = require('./array-helper').isArray;
 
-var options;
 var pureJsParser = true;
-var currentElement;
 
-function validateOptions(userOptions) {
-  options = helper.copyOptions(userOptions);
-  helper.ensureFlagExists('ignoreDeclaration', options);
-  helper.ensureFlagExists('ignoreInstruction', options);
-  helper.ensureFlagExists('ignoreAttributes', options);
-  helper.ensureFlagExists('ignoreText', options);
-  helper.ensureFlagExists('ignoreComment', options);
-  helper.ensureFlagExists('ignoreCdata', options);
-  helper.ensureFlagExists('ignoreDoctype', options);
-  helper.ensureFlagExists('compact', options);
-  helper.ensureFlagExists('alwaysChildren', options);
-  helper.ensureFlagExists('addParent', options);
-  helper.ensureFlagExists('trim', options);
-  helper.ensureFlagExists('nativeType', options);
-  helper.ensureFlagExists('sanitize', options);
-  helper.ensureFlagExists('instructionHasAttributes', options);
-  helper.ensureFlagExists('captureSpacesBetweenElements', options);
-  helper.ensureAlwaysArrayExists(options);
-  helper.ensureKeyExists('declaration', options);
-  helper.ensureKeyExists('instruction', options);
-  helper.ensureKeyExists('attributes', options);
-  helper.ensureKeyExists('text', options);
-  helper.ensureKeyExists('comment', options);
-  helper.ensureKeyExists('cdata', options);
-  helper.ensureKeyExists('doctype', options);
-  helper.ensureKeyExists('type', options);
-  helper.ensureKeyExists('name', options);
-  helper.ensureKeyExists('elements', options);
-  helper.ensureKeyExists('parent', options);
-  helper.checkFnExists('doctype', options);
-  helper.checkFnExists('instruction', options);
-  helper.checkFnExists('cdata', options);
-  helper.checkFnExists('comment', options);
-  helper.checkFnExists('text', options);
-  helper.checkFnExists('instructionName', options);
-  helper.checkFnExists('elementName', options);
-  helper.checkFnExists('attributeName', options);
-  helper.checkFnExists('attributeValue', options);
-  helper.checkFnExists('attributes', options);
-  return options;
-}
+module.exports = function (xml, userOptions) {
+  // Each SAX handler closes over this invocation, including nested calls.
+  var options;
+  var currentElement;
 
-function nativeType(value) {
-  var nValue = Number(value);
-  if (!isNaN(nValue)) {
-    return nValue;
+  function validateOptions(userOptions) {
+    options = helper.copyOptions(userOptions);
+    helper.ensureFlagExists('ignoreDeclaration', options);
+    helper.ensureFlagExists('ignoreInstruction', options);
+    helper.ensureFlagExists('ignoreAttributes', options);
+    helper.ensureFlagExists('ignoreText', options);
+    helper.ensureFlagExists('ignoreComment', options);
+    helper.ensureFlagExists('ignoreCdata', options);
+    helper.ensureFlagExists('ignoreDoctype', options);
+    helper.ensureFlagExists('compact', options);
+    helper.ensureFlagExists('alwaysChildren', options);
+    helper.ensureFlagExists('addParent', options);
+    helper.ensureFlagExists('trim', options);
+    helper.ensureFlagExists('nativeType', options);
+    helper.ensureFlagExists('nativeTypeAttributes', options);
+    helper.ensureFlagExists('sanitize', options);
+    helper.ensureFlagExists('instructionHasAttributes', options);
+    helper.ensureFlagExists('captureSpacesBetweenElements', options);
+    helper.ensureAlwaysArrayExists(options);
+    helper.ensureKeyExists('declaration', options);
+    helper.ensureKeyExists('instruction', options);
+    helper.ensureKeyExists('attributes', options);
+    helper.ensureKeyExists('text', options);
+    helper.ensureKeyExists('comment', options);
+    helper.ensureKeyExists('cdata', options);
+    helper.ensureKeyExists('doctype', options);
+    helper.ensureKeyExists('type', options);
+    helper.ensureKeyExists('name', options);
+    helper.ensureKeyExists('elements', options);
+    helper.ensureKeyExists('parent', options);
+    helper.checkFnExists('doctype', options);
+    helper.checkFnExists('instruction', options);
+    helper.checkFnExists('cdata', options);
+    helper.checkFnExists('comment', options);
+    helper.checkFnExists('text', options);
+    helper.checkFnExists('instructionName', options);
+    helper.checkFnExists('elementName', options);
+    helper.checkFnExists('attributeName', options);
+    helper.checkFnExists('attributeValue', options);
+    helper.checkFnExists('attributes', options);
+    return options;
   }
-  var bValue = value.toLowerCase();
-  if (bValue === 'true') {
-    return true;
-  } else if (bValue === 'false') {
-    return false;
-  }
-  return value;
-}
 
-function addField(type, value) {
-  var key;
-  if (options.compact) {
-    if (
-      !currentElement[options[type + 'Key']] &&
-      (isArray(options.alwaysArray) ? options.alwaysArray.indexOf(options[type + 'Key']) !== -1 : options.alwaysArray)
-    ) {
-      currentElement[options[type + 'Key']] = [];
+  function nativeType(value) {
+    var nValue = Number(value);
+    if (!isNaN(nValue)) {
+      return nValue;
     }
-    if (currentElement[options[type + 'Key']] && !isArray(currentElement[options[type + 'Key']])) {
-      currentElement[options[type + 'Key']] = [currentElement[options[type + 'Key']]];
+    var bValue = value.toLowerCase();
+    if (bValue === 'true') {
+      return true;
+    } else if (bValue === 'false') {
+      return false;
     }
-    if (type + 'Fn' in options && typeof value === 'string') {
-      value = options[type + 'Fn'](value, currentElement);
-    }
-    if (type === 'instruction' && ('instructionFn' in options || 'instructionNameFn' in options)) {
-      for (key in value) {
-        if (value.hasOwnProperty(key)) {
+    return value;
+  }
+
+  function addField(type, value) {
+    var key;
+    if (options.compact) {
+      if (
+        !currentElement[options[type + 'Key']] &&
+        (isArray(options.alwaysArray) ? options.alwaysArray.indexOf(options[type + 'Key']) !== -1 : options.alwaysArray)
+      ) {
+        currentElement[options[type + 'Key']] = [];
+      }
+      if (currentElement[options[type + 'Key']] && !isArray(currentElement[options[type + 'Key']])) {
+        currentElement[options[type + 'Key']] = [currentElement[options[type + 'Key']]];
+      }
+      if (type + 'Fn' in options && typeof value === 'string') {
+        value = options[type + 'Fn'](value, currentElement);
+      }
+      if (type === 'instruction' && ('instructionFn' in options || 'instructionNameFn' in options)) {
+        for (key in value) {
+          if (value.hasOwnProperty(key)) {
+            if ('instructionFn' in options) {
+              value[key] = options.instructionFn(value[key], key, currentElement);
+            } else {
+              var temp = value[key];
+              delete value[key];
+              value[options.instructionNameFn(key, temp, currentElement)] = temp;
+            }
+          }
+        }
+      }
+      if (isArray(currentElement[options[type + 'Key']])) {
+        currentElement[options[type + 'Key']].push(value);
+      } else {
+        currentElement[options[type + 'Key']] = value;
+      }
+    } else {
+      if (!currentElement[options.elementsKey]) {
+        currentElement[options.elementsKey] = [];
+      }
+      var element = {};
+      element[options.typeKey] = type;
+      if (type === 'instruction') {
+        for (key in value) {
+          if (value.hasOwnProperty(key)) {
+            break;
+          }
+        }
+        element[options.nameKey] = 'instructionNameFn' in options ? options.instructionNameFn(key, value, currentElement) : key;
+        if (options.instructionHasAttributes) {
+          element[options.attributesKey] = value[key][options.attributesKey];
+          if ('instructionFn' in options) {
+            element[options.attributesKey] = options.instructionFn(element[options.attributesKey], key, currentElement);
+          }
+        } else {
           if ('instructionFn' in options) {
             value[key] = options.instructionFn(value[key], key, currentElement);
-          } else {
-            var temp = value[key];
-            delete value[key];
-            value[options.instructionNameFn(key, temp, currentElement)] = temp;
+          }
+          element[options.instructionKey] = value[key];
+        }
+      } else {
+        if (type + 'Fn' in options) {
+          value = options[type + 'Fn'](value, currentElement);
+        }
+        element[options[type + 'Key']] = value;
+      }
+      if (options.addParent) {
+        element[options.parentKey] = currentElement;
+      }
+      currentElement[options.elementsKey].push(element);
+    }
+  }
+
+  function manipulateAttributes(attributes) {
+    if ('attributesFn' in options && attributes) {
+      attributes = options.attributesFn(attributes, currentElement);
+    }
+    if ((options.trim || 'attributeValueFn' in options || 'attributeNameFn' in options || options.nativeTypeAttributes) && attributes) {
+      var key;
+      for (key in attributes) {
+        if (attributes.hasOwnProperty(key)) {
+          if (options.trim) attributes[key] = attributes[key].trim();
+          if (options.nativeTypeAttributes) {
+            attributes[key] = nativeType(attributes[key]);
+          }
+          if ('attributeValueFn' in options) attributes[key] = options.attributeValueFn(attributes[key], key, currentElement);
+          if ('attributeNameFn' in options) {
+            var temp = attributes[key];
+            delete attributes[key];
+            attributes[options.attributeNameFn(key, attributes[key], currentElement)] = temp;
           }
         }
       }
     }
-    if (isArray(currentElement[options[type + 'Key']])) {
-      currentElement[options[type + 'Key']].push(value);
-    } else {
-      currentElement[options[type + 'Key']] = value;
-    }
-  } else {
-    if (!currentElement[options.elementsKey]) {
-      currentElement[options.elementsKey] = [];
-    }
-    var element = {};
-    element[options.typeKey] = type;
-    if (type === 'instruction') {
-      for (key in value) {
-        if (value.hasOwnProperty(key)) {
-          break;
-        }
+    return attributes;
+  }
+
+  function onInstruction(instruction) {
+    var attributes = {};
+    if (instruction.body && (instruction.name.toLowerCase() === 'xml' || options.instructionHasAttributes)) {
+      var attrsRegExp = /([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|(\w+))\s*/g;
+      var match;
+      while ((match = attrsRegExp.exec(instruction.body)) !== null) {
+        attributes[match[1]] = match[2] || match[3] || match[4];
       }
-      element[options.nameKey] = 'instructionNameFn' in options ? options.instructionNameFn(key, value, currentElement) : key;
-      if (options.instructionHasAttributes) {
-        element[options.attributesKey] = value[key][options.attributesKey];
-        if ('instructionFn' in options) {
-          element[options.attributesKey] = options.instructionFn(element[options.attributesKey], key, currentElement);
-        }
+      attributes = manipulateAttributes(attributes);
+    }
+    if (instruction.name.toLowerCase() === 'xml') {
+      if (options.ignoreDeclaration) {
+        return;
+      }
+      currentElement[options.declarationKey] = {};
+      if (Object.keys(attributes).length) {
+        currentElement[options.declarationKey][options.attributesKey] = attributes;
+      }
+      if (options.addParent) {
+        currentElement[options.declarationKey][options.parentKey] = currentElement;
+      }
+    } else {
+      if (options.ignoreInstruction) {
+        return;
+      }
+      if (options.trim) {
+        instruction.body = instruction.body.trim();
+      }
+      var value = {};
+      if (options.instructionHasAttributes && Object.keys(attributes).length) {
+        value[instruction.name] = {};
+        value[instruction.name][options.attributesKey] = attributes;
       } else {
-        if ('instructionFn' in options) {
-          value[key] = options.instructionFn(value[key], key, currentElement);
-        }
-        element[options.instructionKey] = value[key];
+        value[instruction.name] = instruction.body;
       }
-    } else {
-      if (type + 'Fn' in options) {
-        value = options[type + 'Fn'](value, currentElement);
-      }
-      element[options[type + 'Key']] = value;
+      addField('instruction', value);
     }
-    if (options.addParent) {
-      element[options.parentKey] = currentElement;
-    }
-    currentElement[options.elementsKey].push(element);
   }
-}
 
-function manipulateAttributes(attributes) {
-  if ('attributesFn' in options && attributes) {
-    attributes = options.attributesFn(attributes, currentElement);
-  }
-  if ((options.trim || 'attributeValueFn' in options || 'attributeNameFn' in options) && attributes) {
-    var key;
-    for (key in attributes) {
-      if (attributes.hasOwnProperty(key)) {
-        if (options.trim) attributes[key] = attributes[key].trim();
-        if ('attributeValueFn' in options) attributes[key] = options.attributeValueFn(attributes[key], key, currentElement);
-        if ('attributeNameFn' in options) {
-          var temp = attributes[key];
-          delete attributes[key];
-          attributes[options.attributeNameFn(key, attributes[key], currentElement)] = temp;
-        }
-      }
-    }
-  }
-  return attributes;
-}
-
-function onInstruction(instruction) {
-  var attributes = {};
-  if (instruction.body && (instruction.name.toLowerCase() === 'xml' || options.instructionHasAttributes)) {
-    var attrsRegExp = /([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|(\w+))\s*/g;
-    var match;
-    while ((match = attrsRegExp.exec(instruction.body)) !== null) {
-      attributes[match[1]] = match[2] || match[3] || match[4];
+  function onStartElement(name, attributes) {
+    var element;
+    if (typeof name === 'object') {
+      attributes = name.attributes;
+      name = name.name;
     }
     attributes = manipulateAttributes(attributes);
+    if ('elementNameFn' in options) {
+      name = options.elementNameFn(name, currentElement);
+    }
+    if (options.compact) {
+      element = {};
+      if (!options.ignoreAttributes && attributes && Object.keys(attributes).length) {
+        element[options.attributesKey] = {};
+        var key;
+        for (key in attributes) {
+          if (attributes.hasOwnProperty(key)) {
+            element[options.attributesKey][key] = attributes[key];
+          }
+        }
+      }
+      if (
+        !(name in currentElement) &&
+        (isArray(options.alwaysArray) ? options.alwaysArray.indexOf(name) !== -1 : options.alwaysArray)
+      ) {
+        currentElement[name] = [];
+      }
+      if (currentElement[name] && !isArray(currentElement[name])) {
+        currentElement[name] = [currentElement[name]];
+      }
+      if (isArray(currentElement[name])) {
+        currentElement[name].push(element);
+      } else {
+        currentElement[name] = element;
+      }
+    } else {
+      if (!currentElement[options.elementsKey]) {
+        currentElement[options.elementsKey] = [];
+      }
+      element = {};
+      element[options.typeKey] = 'element';
+      element[options.nameKey] = name;
+      if (!options.ignoreAttributes && attributes && Object.keys(attributes).length) {
+        element[options.attributesKey] = attributes;
+      }
+      if (options.alwaysChildren) {
+        element[options.elementsKey] = [];
+      }
+      currentElement[options.elementsKey].push(element);
+    }
+    element[options.parentKey] = currentElement; // will be deleted in onEndElement() if !options.addParent
+    currentElement = element;
   }
-  if (instruction.name.toLowerCase() === 'xml') {
-    if (options.ignoreDeclaration) {
+
+  function onText(text) {
+    if (options.ignoreText) {
       return;
     }
-    currentElement[options.declarationKey] = {};
-    if (Object.keys(attributes).length) {
-      currentElement[options.declarationKey][options.attributesKey] = attributes;
-    }
-    if (options.addParent) {
-      currentElement[options.declarationKey][options.parentKey] = currentElement;
-    }
-  } else {
-    if (options.ignoreInstruction) {
+    if (!text.trim() && !options.captureSpacesBetweenElements) {
       return;
     }
     if (options.trim) {
-      instruction.body = instruction.body.trim();
+      text = text.trim();
     }
-    var value = {};
-    if (options.instructionHasAttributes && Object.keys(attributes).length) {
-      value[instruction.name] = {};
-      value[instruction.name][options.attributesKey] = attributes;
-    } else {
-      value[instruction.name] = instruction.body;
+    if (options.nativeType) {
+      text = nativeType(text);
     }
-    addField('instruction', value);
+    if (options.sanitize) {
+      text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    addField('text', text);
   }
-}
 
-function onStartElement(name, attributes) {
-  var element;
-  if (typeof name === 'object') {
-    attributes = name.attributes;
-    name = name.name;
-  }
-  attributes = manipulateAttributes(attributes);
-  if ('elementNameFn' in options) {
-    name = options.elementNameFn(name, currentElement);
-  }
-  if (options.compact) {
-    element = {};
-    if (!options.ignoreAttributes && attributes && Object.keys(attributes).length) {
-      element[options.attributesKey] = {};
-      var key;
-      for (key in attributes) {
-        if (attributes.hasOwnProperty(key)) {
-          element[options.attributesKey][key] = attributes[key];
-        }
-      }
+  function onComment(comment) {
+    if (options.ignoreComment) {
+      return;
     }
-    if (
-      !(name in currentElement) &&
-      (isArray(options.alwaysArray) ? options.alwaysArray.indexOf(name) !== -1 : options.alwaysArray)
-    ) {
-      currentElement[name] = [];
+    if (options.trim) {
+      comment = comment.trim();
     }
-    if (currentElement[name] && !isArray(currentElement[name])) {
-      currentElement[name] = [currentElement[name]];
+    addField('comment', comment);
+  }
+
+  function onEndElement(name) {
+    var parentElement = currentElement[options.parentKey];
+    if (!options.addParent) {
+      delete currentElement[options.parentKey];
     }
-    if (isArray(currentElement[name])) {
-      currentElement[name].push(element);
-    } else {
-      currentElement[name] = element;
+    currentElement = parentElement;
+  }
+
+  function onCdata(cdata) {
+    if (options.ignoreCdata) {
+      return;
     }
-  } else {
-    if (!currentElement[options.elementsKey]) {
-      currentElement[options.elementsKey] = [];
+    if (options.trim) {
+      cdata = cdata.trim();
     }
-    element = {};
-    element[options.typeKey] = 'element';
-    element[options.nameKey] = name;
-    if (!options.ignoreAttributes && attributes && Object.keys(attributes).length) {
-      element[options.attributesKey] = attributes;
+    addField('cdata', cdata);
+  }
+
+  function onDoctype(doctype) {
+    if (options.ignoreDoctype) {
+      return;
     }
-    if (options.alwaysChildren) {
-      element[options.elementsKey] = [];
+    doctype = doctype.replace(/^ /, '');
+    if (options.trim) {
+      doctype = doctype.trim();
     }
-    currentElement[options.elementsKey].push(element);
+    addField('doctype', doctype);
   }
-  element[options.parentKey] = currentElement; // will be deleted in onEndElement() if !options.addParent
-  currentElement = element;
-}
 
-function onText(text) {
-  if (options.ignoreText) {
-    return;
+  function onError(error) {
+    error.note = error; //console.error(error);
   }
-  if (!text.trim() && !options.captureSpacesBetweenElements) {
-    return;
-  }
-  if (options.trim) {
-    text = text.trim();
-  }
-  if (options.nativeType) {
-    text = nativeType(text);
-  }
-  if (options.sanitize) {
-    text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-  addField('text', text);
-}
-
-function onComment(comment) {
-  if (options.ignoreComment) {
-    return;
-  }
-  if (options.trim) {
-    comment = comment.trim();
-  }
-  addField('comment', comment);
-}
-
-function onEndElement(name) {
-  var parentElement = currentElement[options.parentKey];
-  if (!options.addParent) {
-    delete currentElement[options.parentKey];
-  }
-  currentElement = parentElement;
-}
-
-function onCdata(cdata) {
-  if (options.ignoreCdata) {
-    return;
-  }
-  if (options.trim) {
-    cdata = cdata.trim();
-  }
-  addField('cdata', cdata);
-}
-
-function onDoctype(doctype) {
-  if (options.ignoreDoctype) {
-    return;
-  }
-  doctype = doctype.replace(/^ /, '');
-  if (options.trim) {
-    doctype = doctype.trim();
-  }
-  addField('doctype', doctype);
-}
-
-function onError(error) {
-  error.note = error; //console.error(error);
-}
-
-module.exports = function (xml, userOptions) {
 
   var parser = pureJsParser ? sax.parser(true, {}) : parser = new expat.Parser('UTF-8');
   var result = {};
@@ -826,7 +831,7 @@ module.exports = function (xml, userOptions) {
 
 };
 
-},{"./array-helper":2,"./options-helper":6,"sax":36}],8:[function(require,module,exports){
+},{"./array-helper":2,"./options-helper":6,"sax":38}],8:[function(require,module,exports){
 var helper = require('./options-helper');
 var xml2js = require('./xml2js');
 
@@ -969,6 +974,981 @@ function fromByteArray (uint8) {
 },{}],10:[function(require,module,exports){
 
 },{}],11:[function(require,module,exports){
+arguments[4][10][0].apply(exports,arguments)
+},{"dup":10}],12:[function(require,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+var objectCreate = Object.create || objectCreatePolyfill
+var objectKeys = Object.keys || objectKeysPolyfill
+var bind = Function.prototype.bind || functionBindPolyfill
+
+function EventEmitter() {
+  if (!this._events || !Object.prototype.hasOwnProperty.call(this, '_events')) {
+    this._events = objectCreate(null);
+    this._eventsCount = 0;
+  }
+
+  this._maxListeners = this._maxListeners || undefined;
+}
+module.exports = EventEmitter;
+
+// Backwards-compat with node 0.10.x
+EventEmitter.EventEmitter = EventEmitter;
+
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+
+// By default EventEmitters will print a warning if more than 10 listeners are
+// added to it. This is a useful default which helps finding memory leaks.
+var defaultMaxListeners = 10;
+
+var hasDefineProperty;
+try {
+  var o = {};
+  if (Object.defineProperty) Object.defineProperty(o, 'x', { value: 0 });
+  hasDefineProperty = o.x === 0;
+} catch (err) { hasDefineProperty = false }
+if (hasDefineProperty) {
+  Object.defineProperty(EventEmitter, 'defaultMaxListeners', {
+    enumerable: true,
+    get: function() {
+      return defaultMaxListeners;
+    },
+    set: function(arg) {
+      // check whether the input is a positive number (whose value is zero or
+      // greater and not a NaN).
+      if (typeof arg !== 'number' || arg < 0 || arg !== arg)
+        throw new TypeError('"defaultMaxListeners" must be a positive number');
+      defaultMaxListeners = arg;
+    }
+  });
+} else {
+  EventEmitter.defaultMaxListeners = defaultMaxListeners;
+}
+
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+EventEmitter.prototype.setMaxListeners = function setMaxListeners(n) {
+  if (typeof n !== 'number' || n < 0 || isNaN(n))
+    throw new TypeError('"n" argument must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
+
+function $getMaxListeners(that) {
+  if (that._maxListeners === undefined)
+    return EventEmitter.defaultMaxListeners;
+  return that._maxListeners;
+}
+
+EventEmitter.prototype.getMaxListeners = function getMaxListeners() {
+  return $getMaxListeners(this);
+};
+
+// These standalone emit* functions are used to optimize calling of event
+// handlers for fast cases because emit() itself often has a variable number of
+// arguments and can be deoptimized because of that. These functions always have
+// the same number of arguments and thus do not get deoptimized, so the code
+// inside them can execute faster.
+function emitNone(handler, isFn, self) {
+  if (isFn)
+    handler.call(self);
+  else {
+    var len = handler.length;
+    var listeners = arrayClone(handler, len);
+    for (var i = 0; i < len; ++i)
+      listeners[i].call(self);
+  }
+}
+function emitOne(handler, isFn, self, arg1) {
+  if (isFn)
+    handler.call(self, arg1);
+  else {
+    var len = handler.length;
+    var listeners = arrayClone(handler, len);
+    for (var i = 0; i < len; ++i)
+      listeners[i].call(self, arg1);
+  }
+}
+function emitTwo(handler, isFn, self, arg1, arg2) {
+  if (isFn)
+    handler.call(self, arg1, arg2);
+  else {
+    var len = handler.length;
+    var listeners = arrayClone(handler, len);
+    for (var i = 0; i < len; ++i)
+      listeners[i].call(self, arg1, arg2);
+  }
+}
+function emitThree(handler, isFn, self, arg1, arg2, arg3) {
+  if (isFn)
+    handler.call(self, arg1, arg2, arg3);
+  else {
+    var len = handler.length;
+    var listeners = arrayClone(handler, len);
+    for (var i = 0; i < len; ++i)
+      listeners[i].call(self, arg1, arg2, arg3);
+  }
+}
+
+function emitMany(handler, isFn, self, args) {
+  if (isFn)
+    handler.apply(self, args);
+  else {
+    var len = handler.length;
+    var listeners = arrayClone(handler, len);
+    for (var i = 0; i < len; ++i)
+      listeners[i].apply(self, args);
+  }
+}
+
+EventEmitter.prototype.emit = function emit(type) {
+  var er, handler, len, args, i, events;
+  var doError = (type === 'error');
+
+  events = this._events;
+  if (events)
+    doError = (doError && events.error == null);
+  else if (!doError)
+    return false;
+
+  // If there is no 'error' event listener then throw.
+  if (doError) {
+    if (arguments.length > 1)
+      er = arguments[1];
+    if (er instanceof Error) {
+      throw er; // Unhandled 'error' event
+    } else {
+      // At least give some kind of context to the user
+      var err = new Error('Unhandled "error" event. (' + er + ')');
+      err.context = er;
+      throw err;
+    }
+    return false;
+  }
+
+  handler = events[type];
+
+  if (!handler)
+    return false;
+
+  var isFn = typeof handler === 'function';
+  len = arguments.length;
+  switch (len) {
+      // fast cases
+    case 1:
+      emitNone(handler, isFn, this);
+      break;
+    case 2:
+      emitOne(handler, isFn, this, arguments[1]);
+      break;
+    case 3:
+      emitTwo(handler, isFn, this, arguments[1], arguments[2]);
+      break;
+    case 4:
+      emitThree(handler, isFn, this, arguments[1], arguments[2], arguments[3]);
+      break;
+      // slower
+    default:
+      args = new Array(len - 1);
+      for (i = 1; i < len; i++)
+        args[i - 1] = arguments[i];
+      emitMany(handler, isFn, this, args);
+  }
+
+  return true;
+};
+
+function _addListener(target, type, listener, prepend) {
+  var m;
+  var events;
+  var existing;
+
+  if (typeof listener !== 'function')
+    throw new TypeError('"listener" argument must be a function');
+
+  events = target._events;
+  if (!events) {
+    events = target._events = objectCreate(null);
+    target._eventsCount = 0;
+  } else {
+    // To avoid recursion in the case that type === "newListener"! Before
+    // adding it to the listeners, first emit "newListener".
+    if (events.newListener) {
+      target.emit('newListener', type,
+          listener.listener ? listener.listener : listener);
+
+      // Re-assign `events` because a newListener handler could have caused the
+      // this._events to be assigned to a new object
+      events = target._events;
+    }
+    existing = events[type];
+  }
+
+  if (!existing) {
+    // Optimize the case of one listener. Don't need the extra array object.
+    existing = events[type] = listener;
+    ++target._eventsCount;
+  } else {
+    if (typeof existing === 'function') {
+      // Adding the second element, need to change to array.
+      existing = events[type] =
+          prepend ? [listener, existing] : [existing, listener];
+    } else {
+      // If we've already got an array, just append.
+      if (prepend) {
+        existing.unshift(listener);
+      } else {
+        existing.push(listener);
+      }
+    }
+
+    // Check for listener leak
+    if (!existing.warned) {
+      m = $getMaxListeners(target);
+      if (m && m > 0 && existing.length > m) {
+        existing.warned = true;
+        var w = new Error('Possible EventEmitter memory leak detected. ' +
+            existing.length + ' "' + String(type) + '" listeners ' +
+            'added. Use emitter.setMaxListeners() to ' +
+            'increase limit.');
+        w.name = 'MaxListenersExceededWarning';
+        w.emitter = target;
+        w.type = type;
+        w.count = existing.length;
+        if (typeof console === 'object' && console.warn) {
+          console.warn('%s: %s', w.name, w.message);
+        }
+      }
+    }
+  }
+
+  return target;
+}
+
+EventEmitter.prototype.addListener = function addListener(type, listener) {
+  return _addListener(this, type, listener, false);
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.prependListener =
+    function prependListener(type, listener) {
+      return _addListener(this, type, listener, true);
+    };
+
+function onceWrapper() {
+  if (!this.fired) {
+    this.target.removeListener(this.type, this.wrapFn);
+    this.fired = true;
+    switch (arguments.length) {
+      case 0:
+        return this.listener.call(this.target);
+      case 1:
+        return this.listener.call(this.target, arguments[0]);
+      case 2:
+        return this.listener.call(this.target, arguments[0], arguments[1]);
+      case 3:
+        return this.listener.call(this.target, arguments[0], arguments[1],
+            arguments[2]);
+      default:
+        var args = new Array(arguments.length);
+        for (var i = 0; i < args.length; ++i)
+          args[i] = arguments[i];
+        this.listener.apply(this.target, args);
+    }
+  }
+}
+
+function _onceWrap(target, type, listener) {
+  var state = { fired: false, wrapFn: undefined, target: target, type: type, listener: listener };
+  var wrapped = bind.call(onceWrapper, state);
+  wrapped.listener = listener;
+  state.wrapFn = wrapped;
+  return wrapped;
+}
+
+EventEmitter.prototype.once = function once(type, listener) {
+  if (typeof listener !== 'function')
+    throw new TypeError('"listener" argument must be a function');
+  this.on(type, _onceWrap(this, type, listener));
+  return this;
+};
+
+EventEmitter.prototype.prependOnceListener =
+    function prependOnceListener(type, listener) {
+      if (typeof listener !== 'function')
+        throw new TypeError('"listener" argument must be a function');
+      this.prependListener(type, _onceWrap(this, type, listener));
+      return this;
+    };
+
+// Emits a 'removeListener' event if and only if the listener was removed.
+EventEmitter.prototype.removeListener =
+    function removeListener(type, listener) {
+      var list, events, position, i, originalListener;
+
+      if (typeof listener !== 'function')
+        throw new TypeError('"listener" argument must be a function');
+
+      events = this._events;
+      if (!events)
+        return this;
+
+      list = events[type];
+      if (!list)
+        return this;
+
+      if (list === listener || list.listener === listener) {
+        if (--this._eventsCount === 0)
+          this._events = objectCreate(null);
+        else {
+          delete events[type];
+          if (events.removeListener)
+            this.emit('removeListener', type, list.listener || listener);
+        }
+      } else if (typeof list !== 'function') {
+        position = -1;
+
+        for (i = list.length - 1; i >= 0; i--) {
+          if (list[i] === listener || list[i].listener === listener) {
+            originalListener = list[i].listener;
+            position = i;
+            break;
+          }
+        }
+
+        if (position < 0)
+          return this;
+
+        if (position === 0)
+          list.shift();
+        else
+          spliceOne(list, position);
+
+        if (list.length === 1)
+          events[type] = list[0];
+
+        if (events.removeListener)
+          this.emit('removeListener', type, originalListener || listener);
+      }
+
+      return this;
+    };
+
+EventEmitter.prototype.removeAllListeners =
+    function removeAllListeners(type) {
+      var listeners, events, i;
+
+      events = this._events;
+      if (!events)
+        return this;
+
+      // not listening for removeListener, no need to emit
+      if (!events.removeListener) {
+        if (arguments.length === 0) {
+          this._events = objectCreate(null);
+          this._eventsCount = 0;
+        } else if (events[type]) {
+          if (--this._eventsCount === 0)
+            this._events = objectCreate(null);
+          else
+            delete events[type];
+        }
+        return this;
+      }
+
+      // emit removeListener for all listeners on all events
+      if (arguments.length === 0) {
+        var keys = objectKeys(events);
+        var key;
+        for (i = 0; i < keys.length; ++i) {
+          key = keys[i];
+          if (key === 'removeListener') continue;
+          this.removeAllListeners(key);
+        }
+        this.removeAllListeners('removeListener');
+        this._events = objectCreate(null);
+        this._eventsCount = 0;
+        return this;
+      }
+
+      listeners = events[type];
+
+      if (typeof listeners === 'function') {
+        this.removeListener(type, listeners);
+      } else if (listeners) {
+        // LIFO order
+        for (i = listeners.length - 1; i >= 0; i--) {
+          this.removeListener(type, listeners[i]);
+        }
+      }
+
+      return this;
+    };
+
+function _listeners(target, type, unwrap) {
+  var events = target._events;
+
+  if (!events)
+    return [];
+
+  var evlistener = events[type];
+  if (!evlistener)
+    return [];
+
+  if (typeof evlistener === 'function')
+    return unwrap ? [evlistener.listener || evlistener] : [evlistener];
+
+  return unwrap ? unwrapListeners(evlistener) : arrayClone(evlistener, evlistener.length);
+}
+
+EventEmitter.prototype.listeners = function listeners(type) {
+  return _listeners(this, type, true);
+};
+
+EventEmitter.prototype.rawListeners = function rawListeners(type) {
+  return _listeners(this, type, false);
+};
+
+EventEmitter.listenerCount = function(emitter, type) {
+  if (typeof emitter.listenerCount === 'function') {
+    return emitter.listenerCount(type);
+  } else {
+    return listenerCount.call(emitter, type);
+  }
+};
+
+EventEmitter.prototype.listenerCount = listenerCount;
+function listenerCount(type) {
+  var events = this._events;
+
+  if (events) {
+    var evlistener = events[type];
+
+    if (typeof evlistener === 'function') {
+      return 1;
+    } else if (evlistener) {
+      return evlistener.length;
+    }
+  }
+
+  return 0;
+}
+
+EventEmitter.prototype.eventNames = function eventNames() {
+  return this._eventsCount > 0 ? Reflect.ownKeys(this._events) : [];
+};
+
+// About 1.5x faster than the two-arg version of Array#splice().
+function spliceOne(list, index) {
+  for (var i = index, k = i + 1, n = list.length; k < n; i += 1, k += 1)
+    list[i] = list[k];
+  list.pop();
+}
+
+function arrayClone(arr, n) {
+  var copy = new Array(n);
+  for (var i = 0; i < n; ++i)
+    copy[i] = arr[i];
+  return copy;
+}
+
+function unwrapListeners(arr) {
+  var ret = new Array(arr.length);
+  for (var i = 0; i < ret.length; ++i) {
+    ret[i] = arr[i].listener || arr[i];
+  }
+  return ret;
+}
+
+function objectCreatePolyfill(proto) {
+  var F = function() {};
+  F.prototype = proto;
+  return new F;
+}
+function objectKeysPolyfill(obj) {
+  var keys = [];
+  for (var k in obj) if (Object.prototype.hasOwnProperty.call(obj, k)) {
+    keys.push(k);
+  }
+  return k;
+}
+function functionBindPolyfill(context) {
+  var fn = this;
+  return function () {
+    return fn.apply(context, arguments);
+  };
+}
+
+},{}],13:[function(require,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+'use strict';
+
+/*<replacement>*/
+
+var Buffer = require('safe-buffer').Buffer;
+/*</replacement>*/
+
+var isEncoding = Buffer.isEncoding || function (encoding) {
+  encoding = '' + encoding;
+  switch (encoding && encoding.toLowerCase()) {
+    case 'hex':case 'utf8':case 'utf-8':case 'ascii':case 'binary':case 'base64':case 'ucs2':case 'ucs-2':case 'utf16le':case 'utf-16le':case 'raw':
+      return true;
+    default:
+      return false;
+  }
+};
+
+function _normalizeEncoding(enc) {
+  if (!enc) return 'utf8';
+  var retried;
+  while (true) {
+    switch (enc) {
+      case 'utf8':
+      case 'utf-8':
+        return 'utf8';
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return 'utf16le';
+      case 'latin1':
+      case 'binary':
+        return 'latin1';
+      case 'base64':
+      case 'ascii':
+      case 'hex':
+        return enc;
+      default:
+        if (retried) return; // undefined
+        enc = ('' + enc).toLowerCase();
+        retried = true;
+    }
+  }
+};
+
+// Do not cache `Buffer.isEncoding` when checking encoding names as some
+// modules monkey-patch it to support additional encodings
+function normalizeEncoding(enc) {
+  var nenc = _normalizeEncoding(enc);
+  if (typeof nenc !== 'string' && (Buffer.isEncoding === isEncoding || !isEncoding(enc))) throw new Error('Unknown encoding: ' + enc);
+  return nenc || enc;
+}
+
+// StringDecoder provides an interface for efficiently splitting a series of
+// buffers into a series of JS strings without breaking apart multi-byte
+// characters.
+exports.StringDecoder = StringDecoder;
+function StringDecoder(encoding) {
+  this.encoding = normalizeEncoding(encoding);
+  var nb;
+  switch (this.encoding) {
+    case 'utf16le':
+      this.text = utf16Text;
+      this.end = utf16End;
+      nb = 4;
+      break;
+    case 'utf8':
+      this.fillLast = utf8FillLast;
+      nb = 4;
+      break;
+    case 'base64':
+      this.text = base64Text;
+      this.end = base64End;
+      nb = 3;
+      break;
+    default:
+      this.write = simpleWrite;
+      this.end = simpleEnd;
+      return;
+  }
+  this.lastNeed = 0;
+  this.lastTotal = 0;
+  this.lastChar = Buffer.allocUnsafe(nb);
+}
+
+StringDecoder.prototype.write = function (buf) {
+  if (buf.length === 0) return '';
+  var r;
+  var i;
+  if (this.lastNeed) {
+    r = this.fillLast(buf);
+    if (r === undefined) return '';
+    i = this.lastNeed;
+    this.lastNeed = 0;
+  } else {
+    i = 0;
+  }
+  if (i < buf.length) return r ? r + this.text(buf, i) : this.text(buf, i);
+  return r || '';
+};
+
+StringDecoder.prototype.end = utf8End;
+
+// Returns only complete characters in a Buffer
+StringDecoder.prototype.text = utf8Text;
+
+// Attempts to complete a partial non-UTF-8 character using bytes from a Buffer
+StringDecoder.prototype.fillLast = function (buf) {
+  if (this.lastNeed <= buf.length) {
+    buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, this.lastNeed);
+    return this.lastChar.toString(this.encoding, 0, this.lastTotal);
+  }
+  buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, buf.length);
+  this.lastNeed -= buf.length;
+};
+
+// Checks the type of a UTF-8 byte, whether it's ASCII, a leading byte, or a
+// continuation byte. If an invalid byte is detected, -2 is returned.
+function utf8CheckByte(byte) {
+  if (byte <= 0x7F) return 0;else if (byte >> 5 === 0x06) return 2;else if (byte >> 4 === 0x0E) return 3;else if (byte >> 3 === 0x1E) return 4;
+  return byte >> 6 === 0x02 ? -1 : -2;
+}
+
+// Checks at most 3 bytes at the end of a Buffer in order to detect an
+// incomplete multi-byte UTF-8 character. The total number of bytes (2, 3, or 4)
+// needed to complete the UTF-8 character (if applicable) are returned.
+function utf8CheckIncomplete(self, buf, i) {
+  var j = buf.length - 1;
+  if (j < i) return 0;
+  var nb = utf8CheckByte(buf[j]);
+  if (nb >= 0) {
+    if (nb > 0) self.lastNeed = nb - 1;
+    return nb;
+  }
+  if (--j < i || nb === -2) return 0;
+  nb = utf8CheckByte(buf[j]);
+  if (nb >= 0) {
+    if (nb > 0) self.lastNeed = nb - 2;
+    return nb;
+  }
+  if (--j < i || nb === -2) return 0;
+  nb = utf8CheckByte(buf[j]);
+  if (nb >= 0) {
+    if (nb > 0) {
+      if (nb === 2) nb = 0;else self.lastNeed = nb - 3;
+    }
+    return nb;
+  }
+  return 0;
+}
+
+// Validates as many continuation bytes for a multi-byte UTF-8 character as
+// needed or are available. If we see a non-continuation byte where we expect
+// one, we "replace" the validated continuation bytes we've seen so far with
+// a single UTF-8 replacement character ('\ufffd'), to match v8's UTF-8 decoding
+// behavior. The continuation byte check is included three times in the case
+// where all of the continuation bytes for a character exist in the same buffer.
+// It is also done this way as a slight performance increase instead of using a
+// loop.
+function utf8CheckExtraBytes(self, buf, p) {
+  if ((buf[0] & 0xC0) !== 0x80) {
+    self.lastNeed = 0;
+    return '\ufffd';
+  }
+  if (self.lastNeed > 1 && buf.length > 1) {
+    if ((buf[1] & 0xC0) !== 0x80) {
+      self.lastNeed = 1;
+      return '\ufffd';
+    }
+    if (self.lastNeed > 2 && buf.length > 2) {
+      if ((buf[2] & 0xC0) !== 0x80) {
+        self.lastNeed = 2;
+        return '\ufffd';
+      }
+    }
+  }
+}
+
+// Attempts to complete a multi-byte UTF-8 character using bytes from a Buffer.
+function utf8FillLast(buf) {
+  var p = this.lastTotal - this.lastNeed;
+  var r = utf8CheckExtraBytes(this, buf, p);
+  if (r !== undefined) return r;
+  if (this.lastNeed <= buf.length) {
+    buf.copy(this.lastChar, p, 0, this.lastNeed);
+    return this.lastChar.toString(this.encoding, 0, this.lastTotal);
+  }
+  buf.copy(this.lastChar, p, 0, buf.length);
+  this.lastNeed -= buf.length;
+}
+
+// Returns all complete UTF-8 characters in a Buffer. If the Buffer ended on a
+// partial character, the character's bytes are buffered until the required
+// number of bytes are available.
+function utf8Text(buf, i) {
+  var total = utf8CheckIncomplete(this, buf, i);
+  if (!this.lastNeed) return buf.toString('utf8', i);
+  this.lastTotal = total;
+  var end = buf.length - (total - this.lastNeed);
+  buf.copy(this.lastChar, 0, end);
+  return buf.toString('utf8', i, end);
+}
+
+// For UTF-8, a replacement character is added when ending on a partial
+// character.
+function utf8End(buf) {
+  var r = buf && buf.length ? this.write(buf) : '';
+  if (this.lastNeed) return r + '\ufffd';
+  return r;
+}
+
+// UTF-16LE typically needs two bytes per character, but even if we have an even
+// number of bytes available, we need to check if we end on a leading/high
+// surrogate. In that case, we need to wait for the next two bytes in order to
+// decode the last character properly.
+function utf16Text(buf, i) {
+  if ((buf.length - i) % 2 === 0) {
+    var r = buf.toString('utf16le', i);
+    if (r) {
+      var c = r.charCodeAt(r.length - 1);
+      if (c >= 0xD800 && c <= 0xDBFF) {
+        this.lastNeed = 2;
+        this.lastTotal = 4;
+        this.lastChar[0] = buf[buf.length - 2];
+        this.lastChar[1] = buf[buf.length - 1];
+        return r.slice(0, -1);
+      }
+    }
+    return r;
+  }
+  this.lastNeed = 1;
+  this.lastTotal = 2;
+  this.lastChar[0] = buf[buf.length - 1];
+  return buf.toString('utf16le', i, buf.length - 1);
+}
+
+// For UTF-16LE we do not explicitly append special replacement characters if we
+// end on a partial character, we simply let v8 handle that.
+function utf16End(buf) {
+  var r = buf && buf.length ? this.write(buf) : '';
+  if (this.lastNeed) {
+    var end = this.lastTotal - this.lastNeed;
+    return r + this.lastChar.toString('utf16le', 0, end);
+  }
+  return r;
+}
+
+function base64Text(buf, i) {
+  var n = (buf.length - i) % 3;
+  if (n === 0) return buf.toString('base64', i);
+  this.lastNeed = 3 - n;
+  this.lastTotal = 3;
+  if (n === 1) {
+    this.lastChar[0] = buf[buf.length - 1];
+  } else {
+    this.lastChar[0] = buf[buf.length - 2];
+    this.lastChar[1] = buf[buf.length - 1];
+  }
+  return buf.toString('base64', i, buf.length - n);
+}
+
+function base64End(buf) {
+  var r = buf && buf.length ? this.write(buf) : '';
+  if (this.lastNeed) return r + this.lastChar.toString('base64', 0, 3 - this.lastNeed);
+  return r;
+}
+
+// Pass bytes on through for single-byte encodings (e.g. ascii, latin1, hex)
+function simpleWrite(buf) {
+  return buf.toString(this.encoding);
+}
+
+function simpleEnd(buf) {
+  return buf && buf.length ? this.write(buf) : '';
+}
+},{"safe-buffer":37}],14:[function(require,module,exports){
+var indexOf = function (xs, item) {
+    if (xs.indexOf) return xs.indexOf(item);
+    else for (var i = 0; i < xs.length; i++) {
+        if (xs[i] === item) return i;
+    }
+    return -1;
+};
+var Object_keys = function (obj) {
+    if (Object.keys) return Object.keys(obj)
+    else {
+        var res = [];
+        for (var key in obj) res.push(key)
+        return res;
+    }
+};
+
+var forEach = function (xs, fn) {
+    if (xs.forEach) return xs.forEach(fn)
+    else for (var i = 0; i < xs.length; i++) {
+        fn(xs[i], i, xs);
+    }
+};
+
+var defineProp = (function() {
+    try {
+        Object.defineProperty({}, '_', {});
+        return function(obj, name, value) {
+            Object.defineProperty(obj, name, {
+                writable: true,
+                enumerable: false,
+                configurable: true,
+                value: value
+            })
+        };
+    } catch(e) {
+        return function(obj, name, value) {
+            obj[name] = value;
+        };
+    }
+}());
+
+var globals = ['Array', 'Boolean', 'Date', 'Error', 'EvalError', 'Function',
+'Infinity', 'JSON', 'Math', 'NaN', 'Number', 'Object', 'RangeError',
+'ReferenceError', 'RegExp', 'String', 'SyntaxError', 'TypeError', 'URIError',
+'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent', 'escape',
+'eval', 'isFinite', 'isNaN', 'parseFloat', 'parseInt', 'undefined', 'unescape'];
+
+function Context() {}
+Context.prototype = {};
+
+var Script = exports.Script = function NodeScript (code) {
+    if (!(this instanceof Script)) return new Script(code);
+    this.code = code;
+};
+
+Script.prototype.runInContext = function (context) {
+    if (!(context instanceof Context)) {
+        throw new TypeError("needs a 'context' argument.");
+    }
+    
+    var iframe = document.createElement('iframe');
+    if (!iframe.style) iframe.style = {};
+    iframe.style.display = 'none';
+    
+    document.body.appendChild(iframe);
+    
+    var win = iframe.contentWindow;
+    var wEval = win.eval, wExecScript = win.execScript;
+
+    if (!wEval && wExecScript) {
+        // win.eval() magically appears when this is called in IE:
+        wExecScript.call(win, 'null');
+        wEval = win.eval;
+    }
+    
+    forEach(Object_keys(context), function (key) {
+        win[key] = context[key];
+    });
+    forEach(globals, function (key) {
+        if (context[key]) {
+            win[key] = context[key];
+        }
+    });
+    
+    var winKeys = Object_keys(win);
+
+    var res = wEval.call(win, this.code);
+    
+    forEach(Object_keys(win), function (key) {
+        // Avoid copying circular objects like `top` and `window` by only
+        // updating existing context properties or new properties in the `win`
+        // that was only introduced after the eval.
+        if (key in context || indexOf(winKeys, key) === -1) {
+            context[key] = win[key];
+        }
+    });
+
+    forEach(globals, function (key) {
+        if (!(key in context)) {
+            defineProp(context, key, win[key]);
+        }
+    });
+    
+    document.body.removeChild(iframe);
+    
+    return res;
+};
+
+Script.prototype.runInThisContext = function () {
+    return eval(this.code); // maybe...
+};
+
+Script.prototype.runInNewContext = function (context) {
+    var ctx = Script.createContext(context);
+    var res = this.runInContext(ctx);
+
+    if (context) {
+        forEach(Object_keys(ctx), function (key) {
+            context[key] = ctx[key];
+        });
+    }
+
+    return res;
+};
+
+forEach(Object_keys(Script.prototype), function (name) {
+    exports[name] = Script[name] = function (code) {
+        var s = Script(code);
+        return s[name].apply(s, [].slice.call(arguments, 1));
+    };
+});
+
+exports.isContext = function (context) {
+    return context instanceof Context;
+};
+
+exports.createScript = function (code) {
+    return exports.Script(code);
+};
+
+exports.createContext = Script.createContext = function (context) {
+    var copy = new Context();
+    if(typeof context === 'object') {
+        forEach(Object_keys(context), function (key) {
+            copy[key] = context[key];
+        });
+    }
+    return copy;
+};
+
+},{}],15:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -1017,16 +1997,32 @@ function typedArraySupport () {
   // Can typed array instances can be augmented?
   try {
     var arr = new Uint8Array(1)
-    arr.__proto__ = {__proto__: Uint8Array.prototype, foo: function () { return 42 }}
+    arr.__proto__ = { __proto__: Uint8Array.prototype, foo: function () { return 42 } }
     return arr.foo() === 42
   } catch (e) {
     return false
   }
 }
 
+Object.defineProperty(Buffer.prototype, 'parent', {
+  enumerable: true,
+  get: function () {
+    if (!Buffer.isBuffer(this)) return undefined
+    return this.buffer
+  }
+})
+
+Object.defineProperty(Buffer.prototype, 'offset', {
+  enumerable: true,
+  get: function () {
+    if (!Buffer.isBuffer(this)) return undefined
+    return this.byteOffset
+  }
+})
+
 function createBuffer (length) {
   if (length > K_MAX_LENGTH) {
-    throw new RangeError('Invalid typed array length')
+    throw new RangeError('The value "' + length + '" is invalid for option "size"')
   }
   // Return an augmented `Uint8Array` instance
   var buf = new Uint8Array(length)
@@ -1048,8 +2044,8 @@ function Buffer (arg, encodingOrOffset, length) {
   // Common case.
   if (typeof arg === 'number') {
     if (typeof encodingOrOffset === 'string') {
-      throw new Error(
-        'If encoding is specified then the first argument must be a string'
+      throw new TypeError(
+        'The "string" argument must be of type string. Received type number'
       )
     }
     return allocUnsafe(arg)
@@ -1058,7 +2054,7 @@ function Buffer (arg, encodingOrOffset, length) {
 }
 
 // Fix subarray() in ES2016. See: https://github.com/feross/buffer/pull/97
-if (typeof Symbol !== 'undefined' && Symbol.species &&
+if (typeof Symbol !== 'undefined' && Symbol.species != null &&
     Buffer[Symbol.species] === Buffer) {
   Object.defineProperty(Buffer, Symbol.species, {
     value: null,
@@ -1071,19 +2067,51 @@ if (typeof Symbol !== 'undefined' && Symbol.species &&
 Buffer.poolSize = 8192 // not used by this implementation
 
 function from (value, encodingOrOffset, length) {
-  if (typeof value === 'number') {
-    throw new TypeError('"value" argument must not be a number')
-  }
-
-  if (isArrayBuffer(value)) {
-    return fromArrayBuffer(value, encodingOrOffset, length)
-  }
-
   if (typeof value === 'string') {
     return fromString(value, encodingOrOffset)
   }
 
-  return fromObject(value)
+  if (ArrayBuffer.isView(value)) {
+    return fromArrayLike(value)
+  }
+
+  if (value == null) {
+    throw TypeError(
+      'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
+      'or Array-like Object. Received type ' + (typeof value)
+    )
+  }
+
+  if (isInstance(value, ArrayBuffer) ||
+      (value && isInstance(value.buffer, ArrayBuffer))) {
+    return fromArrayBuffer(value, encodingOrOffset, length)
+  }
+
+  if (typeof value === 'number') {
+    throw new TypeError(
+      'The "value" argument must not be of type number. Received type number'
+    )
+  }
+
+  var valueOf = value.valueOf && value.valueOf()
+  if (valueOf != null && valueOf !== value) {
+    return Buffer.from(valueOf, encodingOrOffset, length)
+  }
+
+  var b = fromObject(value)
+  if (b) return b
+
+  if (typeof Symbol !== 'undefined' && Symbol.toPrimitive != null &&
+      typeof value[Symbol.toPrimitive] === 'function') {
+    return Buffer.from(
+      value[Symbol.toPrimitive]('string'), encodingOrOffset, length
+    )
+  }
+
+  throw new TypeError(
+    'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
+    'or Array-like Object. Received type ' + (typeof value)
+  )
 }
 
 /**
@@ -1105,9 +2133,9 @@ Buffer.__proto__ = Uint8Array
 
 function assertSize (size) {
   if (typeof size !== 'number') {
-    throw new TypeError('"size" argument must be a number')
+    throw new TypeError('"size" argument must be of type number')
   } else if (size < 0) {
-    throw new RangeError('"size" argument must not be negative')
+    throw new RangeError('The value "' + size + '" is invalid for option "size"')
   }
 }
 
@@ -1159,7 +2187,7 @@ function fromString (string, encoding) {
   }
 
   if (!Buffer.isEncoding(encoding)) {
-    throw new TypeError('"encoding" must be a valid string encoding')
+    throw new TypeError('Unknown encoding: ' + encoding)
   }
 
   var length = byteLength(string, encoding) | 0
@@ -1188,11 +2216,11 @@ function fromArrayLike (array) {
 
 function fromArrayBuffer (array, byteOffset, length) {
   if (byteOffset < 0 || array.byteLength < byteOffset) {
-    throw new RangeError('\'offset\' is out of bounds')
+    throw new RangeError('"offset" is outside of buffer bounds')
   }
 
   if (array.byteLength < byteOffset + (length || 0)) {
-    throw new RangeError('\'length\' is out of bounds')
+    throw new RangeError('"length" is outside of buffer bounds')
   }
 
   var buf
@@ -1222,20 +2250,16 @@ function fromObject (obj) {
     return buf
   }
 
-  if (obj) {
-    if (isArrayBufferView(obj) || 'length' in obj) {
-      if (typeof obj.length !== 'number' || numberIsNaN(obj.length)) {
-        return createBuffer(0)
-      }
-      return fromArrayLike(obj)
+  if (obj.length !== undefined) {
+    if (typeof obj.length !== 'number' || numberIsNaN(obj.length)) {
+      return createBuffer(0)
     }
-
-    if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
-      return fromArrayLike(obj.data)
-    }
+    return fromArrayLike(obj)
   }
 
-  throw new TypeError('First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.')
+  if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
+    return fromArrayLike(obj.data)
+  }
 }
 
 function checked (length) {
@@ -1256,12 +2280,17 @@ function SlowBuffer (length) {
 }
 
 Buffer.isBuffer = function isBuffer (b) {
-  return b != null && b._isBuffer === true
+  return b != null && b._isBuffer === true &&
+    b !== Buffer.prototype // so Buffer.isBuffer(Buffer.prototype) will be false
 }
 
 Buffer.compare = function compare (a, b) {
+  if (isInstance(a, Uint8Array)) a = Buffer.from(a, a.offset, a.byteLength)
+  if (isInstance(b, Uint8Array)) b = Buffer.from(b, b.offset, b.byteLength)
   if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b)) {
-    throw new TypeError('Arguments must be Buffers')
+    throw new TypeError(
+      'The "buf1", "buf2" arguments must be one of type Buffer or Uint8Array'
+    )
   }
 
   if (a === b) return 0
@@ -1322,6 +2351,9 @@ Buffer.concat = function concat (list, length) {
   var pos = 0
   for (i = 0; i < list.length; ++i) {
     var buf = list[i]
+    if (isInstance(buf, Uint8Array)) {
+      buf = Buffer.from(buf)
+    }
     if (!Buffer.isBuffer(buf)) {
       throw new TypeError('"list" argument must be an Array of Buffers')
     }
@@ -1335,15 +2367,19 @@ function byteLength (string, encoding) {
   if (Buffer.isBuffer(string)) {
     return string.length
   }
-  if (isArrayBufferView(string) || isArrayBuffer(string)) {
+  if (ArrayBuffer.isView(string) || isInstance(string, ArrayBuffer)) {
     return string.byteLength
   }
   if (typeof string !== 'string') {
-    string = '' + string
+    throw new TypeError(
+      'The "string" argument must be one of type string, Buffer, or ArrayBuffer. ' +
+      'Received type ' + typeof string
+    )
   }
 
   var len = string.length
-  if (len === 0) return 0
+  var mustMatch = (arguments.length > 2 && arguments[2] === true)
+  if (!mustMatch && len === 0) return 0
 
   // Use a for loop to avoid recursion
   var loweredCase = false
@@ -1355,7 +2391,6 @@ function byteLength (string, encoding) {
         return len
       case 'utf8':
       case 'utf-8':
-      case undefined:
         return utf8ToBytes(string).length
       case 'ucs2':
       case 'ucs-2':
@@ -1367,7 +2402,9 @@ function byteLength (string, encoding) {
       case 'base64':
         return base64ToBytes(string).length
       default:
-        if (loweredCase) return utf8ToBytes(string).length // assume utf8
+        if (loweredCase) {
+          return mustMatch ? -1 : utf8ToBytes(string).length // assume utf8
+        }
         encoding = ('' + encoding).toLowerCase()
         loweredCase = true
     }
@@ -1503,6 +2540,8 @@ Buffer.prototype.toString = function toString () {
   return slowToString.apply(this, arguments)
 }
 
+Buffer.prototype.toLocaleString = Buffer.prototype.toString
+
 Buffer.prototype.equals = function equals (b) {
   if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
   if (this === b) return true
@@ -1512,16 +2551,20 @@ Buffer.prototype.equals = function equals (b) {
 Buffer.prototype.inspect = function inspect () {
   var str = ''
   var max = exports.INSPECT_MAX_BYTES
-  if (this.length > 0) {
-    str = this.toString('hex', 0, max).match(/.{2}/g).join(' ')
-    if (this.length > max) str += ' ... '
-  }
+  str = this.toString('hex', 0, max).replace(/(.{2})/g, '$1 ').trim()
+  if (this.length > max) str += ' ... '
   return '<Buffer ' + str + '>'
 }
 
 Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
+  if (isInstance(target, Uint8Array)) {
+    target = Buffer.from(target, target.offset, target.byteLength)
+  }
   if (!Buffer.isBuffer(target)) {
-    throw new TypeError('Argument must be a Buffer')
+    throw new TypeError(
+      'The "target" argument must be one of type Buffer or Uint8Array. ' +
+      'Received type ' + (typeof target)
+    )
   }
 
   if (start === undefined) {
@@ -1600,7 +2643,7 @@ function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
   } else if (byteOffset < -0x80000000) {
     byteOffset = -0x80000000
   }
-  byteOffset = +byteOffset  // Coerce to Number.
+  byteOffset = +byteOffset // Coerce to Number.
   if (numberIsNaN(byteOffset)) {
     // byteOffset: it it's undefined, null, NaN, "foo", etc, search whole buffer
     byteOffset = dir ? 0 : (buffer.length - 1)
@@ -1723,9 +2766,7 @@ function hexWrite (buf, string, offset, length) {
     }
   }
 
-  // must be an even number of digits
   var strLen = string.length
-  if (strLen % 2 !== 0) throw new TypeError('Invalid hex string')
 
   if (length > strLen / 2) {
     length = strLen / 2
@@ -1854,8 +2895,8 @@ function utf8Slice (buf, start, end) {
     var codePoint = null
     var bytesPerSequence = (firstByte > 0xEF) ? 4
       : (firstByte > 0xDF) ? 3
-      : (firstByte > 0xBF) ? 2
-      : 1
+        : (firstByte > 0xBF) ? 2
+          : 1
 
     if (i + bytesPerSequence <= end) {
       var secondByte, thirdByte, fourthByte, tempCodePoint
@@ -2418,6 +3459,7 @@ Buffer.prototype.writeDoubleBE = function writeDoubleBE (value, offset, noAssert
 
 // copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
 Buffer.prototype.copy = function copy (target, targetStart, start, end) {
+  if (!Buffer.isBuffer(target)) throw new TypeError('argument should be a Buffer')
   if (!start) start = 0
   if (!end && end !== 0) end = this.length
   if (targetStart >= target.length) targetStart = target.length
@@ -2432,7 +3474,7 @@ Buffer.prototype.copy = function copy (target, targetStart, start, end) {
   if (targetStart < 0) {
     throw new RangeError('targetStart out of bounds')
   }
-  if (start < 0 || start >= this.length) throw new RangeError('sourceStart out of bounds')
+  if (start < 0 || start >= this.length) throw new RangeError('Index out of range')
   if (end < 0) throw new RangeError('sourceEnd out of bounds')
 
   // Are we oob?
@@ -2442,22 +3484,19 @@ Buffer.prototype.copy = function copy (target, targetStart, start, end) {
   }
 
   var len = end - start
-  var i
 
-  if (this === target && start < targetStart && targetStart < end) {
+  if (this === target && typeof Uint8Array.prototype.copyWithin === 'function') {
+    // Use built-in when available, missing from IE11
+    this.copyWithin(targetStart, start, end)
+  } else if (this === target && start < targetStart && targetStart < end) {
     // descending copy from end
-    for (i = len - 1; i >= 0; --i) {
-      target[i + targetStart] = this[i + start]
-    }
-  } else if (len < 1000) {
-    // ascending copy from start
-    for (i = 0; i < len; ++i) {
+    for (var i = len - 1; i >= 0; --i) {
       target[i + targetStart] = this[i + start]
     }
   } else {
     Uint8Array.prototype.set.call(
       target,
-      this.subarray(start, start + len),
+      this.subarray(start, end),
       targetStart
     )
   }
@@ -2480,17 +3519,19 @@ Buffer.prototype.fill = function fill (val, start, end, encoding) {
       encoding = end
       end = this.length
     }
-    if (val.length === 1) {
-      var code = val.charCodeAt(0)
-      if (code < 256) {
-        val = code
-      }
-    }
     if (encoding !== undefined && typeof encoding !== 'string') {
       throw new TypeError('encoding must be a string')
     }
     if (typeof encoding === 'string' && !Buffer.isEncoding(encoding)) {
       throw new TypeError('Unknown encoding: ' + encoding)
+    }
+    if (val.length === 1) {
+      var code = val.charCodeAt(0)
+      if ((encoding === 'utf8' && code < 128) ||
+          encoding === 'latin1') {
+        // Fast path: If `val` fits into a single byte, use that numeric value.
+        val = code
+      }
     }
   } else if (typeof val === 'number') {
     val = val & 255
@@ -2518,8 +3559,12 @@ Buffer.prototype.fill = function fill (val, start, end, encoding) {
   } else {
     var bytes = Buffer.isBuffer(val)
       ? val
-      : new Buffer(val, encoding)
+      : Buffer.from(val, encoding)
     var len = bytes.length
+    if (len === 0) {
+      throw new TypeError('The value "' + val +
+        '" is invalid for argument "value"')
+    }
     for (i = 0; i < end - start; ++i) {
       this[i + start] = bytes[i % len]
     }
@@ -2534,6 +3579,8 @@ Buffer.prototype.fill = function fill (val, start, end, encoding) {
 var INVALID_BASE64_RE = /[^+/0-9A-Za-z-_]/g
 
 function base64clean (str) {
+  // Node takes equal signs as end of the Base64 encoding
+  str = str.split('=')[0]
   // Node strips out invalid characters like \n and \t from the string, base64-js does not
   str = str.trim().replace(INVALID_BASE64_RE, '')
   // Node converts strings with length < 2 to ''
@@ -2667,24 +3714,20 @@ function blitBuffer (src, dst, offset, length) {
   return i
 }
 
-// ArrayBuffers from another context (i.e. an iframe) do not pass the `instanceof` check
-// but they should be treated as valid. See: https://github.com/feross/buffer/issues/166
-function isArrayBuffer (obj) {
-  return obj instanceof ArrayBuffer ||
-    (obj != null && obj.constructor != null && obj.constructor.name === 'ArrayBuffer' &&
-      typeof obj.byteLength === 'number')
+// ArrayBuffer or Uint8Array objects from other contexts (i.e. iframes) do not pass
+// the `instanceof` check but they should be treated as of that type.
+// See: https://github.com/feross/buffer/issues/166
+function isInstance (obj, type) {
+  return obj instanceof type ||
+    (obj != null && obj.constructor != null && obj.constructor.name != null &&
+      obj.constructor.name === type.name)
 }
-
-// Node 0.10 supports `ArrayBuffer` but lacks `ArrayBuffer.isView`
-function isArrayBufferView (obj) {
-  return (typeof ArrayBuffer.isView === 'function') && ArrayBuffer.isView(obj)
-}
-
 function numberIsNaN (obj) {
+  // For IE11 support
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":9,"ieee754":14}],12:[function(require,module,exports){
+},{"base64-js":9,"ieee754":17}],16:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -2795,311 +3838,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":17}],13:[function(require,module,exports){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-function EventEmitter() {
-  this._events = this._events || {};
-  this._maxListeners = this._maxListeners || undefined;
-}
-module.exports = EventEmitter;
-
-// Backwards-compat with node 0.10.x
-EventEmitter.EventEmitter = EventEmitter;
-
-EventEmitter.prototype._events = undefined;
-EventEmitter.prototype._maxListeners = undefined;
-
-// By default EventEmitters will print a warning if more than 10 listeners are
-// added to it. This is a useful default which helps finding memory leaks.
-EventEmitter.defaultMaxListeners = 10;
-
-// Obviously not all Emitters should be limited to 10. This function allows
-// that to be increased. Set to zero for unlimited.
-EventEmitter.prototype.setMaxListeners = function(n) {
-  if (!isNumber(n) || n < 0 || isNaN(n))
-    throw TypeError('n must be a positive number');
-  this._maxListeners = n;
-  return this;
-};
-
-EventEmitter.prototype.emit = function(type) {
-  var er, handler, len, args, i, listeners;
-
-  if (!this._events)
-    this._events = {};
-
-  // If there is no 'error' event listener then throw.
-  if (type === 'error') {
-    if (!this._events.error ||
-        (isObject(this._events.error) && !this._events.error.length)) {
-      er = arguments[1];
-      if (er instanceof Error) {
-        throw er; // Unhandled 'error' event
-      } else {
-        // At least give some kind of context to the user
-        var err = new Error('Uncaught, unspecified "error" event. (' + er + ')');
-        err.context = er;
-        throw err;
-      }
-    }
-  }
-
-  handler = this._events[type];
-
-  if (isUndefined(handler))
-    return false;
-
-  if (isFunction(handler)) {
-    switch (arguments.length) {
-      // fast cases
-      case 1:
-        handler.call(this);
-        break;
-      case 2:
-        handler.call(this, arguments[1]);
-        break;
-      case 3:
-        handler.call(this, arguments[1], arguments[2]);
-        break;
-      // slower
-      default:
-        args = Array.prototype.slice.call(arguments, 1);
-        handler.apply(this, args);
-    }
-  } else if (isObject(handler)) {
-    args = Array.prototype.slice.call(arguments, 1);
-    listeners = handler.slice();
-    len = listeners.length;
-    for (i = 0; i < len; i++)
-      listeners[i].apply(this, args);
-  }
-
-  return true;
-};
-
-EventEmitter.prototype.addListener = function(type, listener) {
-  var m;
-
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  if (!this._events)
-    this._events = {};
-
-  // To avoid recursion in the case that type === "newListener"! Before
-  // adding it to the listeners, first emit "newListener".
-  if (this._events.newListener)
-    this.emit('newListener', type,
-              isFunction(listener.listener) ?
-              listener.listener : listener);
-
-  if (!this._events[type])
-    // Optimize the case of one listener. Don't need the extra array object.
-    this._events[type] = listener;
-  else if (isObject(this._events[type]))
-    // If we've already got an array, just append.
-    this._events[type].push(listener);
-  else
-    // Adding the second element, need to change to array.
-    this._events[type] = [this._events[type], listener];
-
-  // Check for listener leak
-  if (isObject(this._events[type]) && !this._events[type].warned) {
-    if (!isUndefined(this._maxListeners)) {
-      m = this._maxListeners;
-    } else {
-      m = EventEmitter.defaultMaxListeners;
-    }
-
-    if (m && m > 0 && this._events[type].length > m) {
-      this._events[type].warned = true;
-      console.error('(node) warning: possible EventEmitter memory ' +
-                    'leak detected. %d listeners added. ' +
-                    'Use emitter.setMaxListeners() to increase limit.',
-                    this._events[type].length);
-      if (typeof console.trace === 'function') {
-        // not supported in IE 10
-        console.trace();
-      }
-    }
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-
-EventEmitter.prototype.once = function(type, listener) {
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  var fired = false;
-
-  function g() {
-    this.removeListener(type, g);
-
-    if (!fired) {
-      fired = true;
-      listener.apply(this, arguments);
-    }
-  }
-
-  g.listener = listener;
-  this.on(type, g);
-
-  return this;
-};
-
-// emits a 'removeListener' event iff the listener was removed
-EventEmitter.prototype.removeListener = function(type, listener) {
-  var list, position, length, i;
-
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  if (!this._events || !this._events[type])
-    return this;
-
-  list = this._events[type];
-  length = list.length;
-  position = -1;
-
-  if (list === listener ||
-      (isFunction(list.listener) && list.listener === listener)) {
-    delete this._events[type];
-    if (this._events.removeListener)
-      this.emit('removeListener', type, listener);
-
-  } else if (isObject(list)) {
-    for (i = length; i-- > 0;) {
-      if (list[i] === listener ||
-          (list[i].listener && list[i].listener === listener)) {
-        position = i;
-        break;
-      }
-    }
-
-    if (position < 0)
-      return this;
-
-    if (list.length === 1) {
-      list.length = 0;
-      delete this._events[type];
-    } else {
-      list.splice(position, 1);
-    }
-
-    if (this._events.removeListener)
-      this.emit('removeListener', type, listener);
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.removeAllListeners = function(type) {
-  var key, listeners;
-
-  if (!this._events)
-    return this;
-
-  // not listening for removeListener, no need to emit
-  if (!this._events.removeListener) {
-    if (arguments.length === 0)
-      this._events = {};
-    else if (this._events[type])
-      delete this._events[type];
-    return this;
-  }
-
-  // emit removeListener for all listeners on all events
-  if (arguments.length === 0) {
-    for (key in this._events) {
-      if (key === 'removeListener') continue;
-      this.removeAllListeners(key);
-    }
-    this.removeAllListeners('removeListener');
-    this._events = {};
-    return this;
-  }
-
-  listeners = this._events[type];
-
-  if (isFunction(listeners)) {
-    this.removeListener(type, listeners);
-  } else if (listeners) {
-    // LIFO order
-    while (listeners.length)
-      this.removeListener(type, listeners[listeners.length - 1]);
-  }
-  delete this._events[type];
-
-  return this;
-};
-
-EventEmitter.prototype.listeners = function(type) {
-  var ret;
-  if (!this._events || !this._events[type])
-    ret = [];
-  else if (isFunction(this._events[type]))
-    ret = [this._events[type]];
-  else
-    ret = this._events[type].slice();
-  return ret;
-};
-
-EventEmitter.prototype.listenerCount = function(type) {
-  if (this._events) {
-    var evlistener = this._events[type];
-
-    if (isFunction(evlistener))
-      return 1;
-    else if (evlistener)
-      return evlistener.length;
-  }
-  return 0;
-};
-
-EventEmitter.listenerCount = function(emitter, type) {
-  return emitter.listenerCount(type);
-};
-
-function isFunction(arg) {
-  return typeof arg === 'function';
-}
-
-function isNumber(arg) {
-  return typeof arg === 'number';
-}
-
-function isObject(arg) {
-  return typeof arg === 'object' && arg !== null;
-}
-
-function isUndefined(arg) {
-  return arg === void 0;
-}
-
-},{}],14:[function(require,module,exports){
+},{"../../is-buffer/index.js":19}],17:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -3185,18 +3924,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],15:[function(require,module,exports){
-
-var indexOf = [].indexOf;
-
-module.exports = function(arr, obj){
-  if (indexOf) return arr.indexOf(obj);
-  for (var i = 0; i < arr.length; ++i) {
-    if (arr[i] === obj) return i;
-  }
-  return -1;
-};
-},{}],16:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -3221,7 +3949,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -3244,14 +3972,14 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],18:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],19:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -3479,7 +4207,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":21}],20:[function(require,module,exports){
+},{"_process":23}],22:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -3526,7 +4254,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":21}],21:[function(require,module,exports){
+},{"_process":23}],23:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -3712,10 +4440,10 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],22:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports = require('./lib/_stream_duplex.js');
 
-},{"./lib/_stream_duplex.js":23}],23:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":25}],25:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -3840,7 +4568,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":25,"./_stream_writable":27,"core-util-is":12,"inherits":16,"process-nextick-args":20}],24:[function(require,module,exports){
+},{"./_stream_readable":27,"./_stream_writable":29,"core-util-is":16,"inherits":18,"process-nextick-args":22}],26:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -3888,7 +4616,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":26,"core-util-is":12,"inherits":16}],25:[function(require,module,exports){
+},{"./_stream_transform":28,"core-util-is":16,"inherits":18}],27:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -4898,7 +5626,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":23,"./internal/streams/BufferList":28,"./internal/streams/destroy":29,"./internal/streams/stream":30,"_process":21,"core-util-is":12,"events":13,"inherits":16,"isarray":18,"process-nextick-args":20,"safe-buffer":35,"string_decoder/":38,"util":10}],26:[function(require,module,exports){
+},{"./_stream_duplex":25,"./internal/streams/BufferList":30,"./internal/streams/destroy":31,"./internal/streams/stream":32,"_process":23,"core-util-is":16,"events":12,"inherits":18,"isarray":20,"process-nextick-args":22,"safe-buffer":37,"string_decoder/":40,"util":10}],28:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -5113,8 +5841,8 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":23,"core-util-is":12,"inherits":16}],27:[function(require,module,exports){
-(function (process,global){
+},{"./_stream_duplex":25,"core-util-is":16,"inherits":18}],29:[function(require,module,exports){
+(function (process,global,setImmediate){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -5779,8 +6507,8 @@ Writable.prototype._destroy = function (err, cb) {
   this.end();
   cb(err);
 };
-}).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":23,"./internal/streams/destroy":29,"./internal/streams/stream":30,"_process":21,"core-util-is":12,"inherits":16,"process-nextick-args":20,"safe-buffer":35,"util-deprecate":39}],28:[function(require,module,exports){
+}).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("timers").setImmediate)
+},{"./_stream_duplex":25,"./internal/streams/destroy":31,"./internal/streams/stream":32,"_process":23,"core-util-is":16,"inherits":18,"process-nextick-args":22,"safe-buffer":37,"timers":41,"util-deprecate":42}],30:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -5855,7 +6583,7 @@ module.exports = function () {
 
   return BufferList;
 }();
-},{"safe-buffer":35}],29:[function(require,module,exports){
+},{"safe-buffer":37}],31:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -5928,13 +6656,13 @@ module.exports = {
   destroy: destroy,
   undestroy: undestroy
 };
-},{"process-nextick-args":20}],30:[function(require,module,exports){
+},{"process-nextick-args":22}],32:[function(require,module,exports){
 module.exports = require('events').EventEmitter;
 
-},{"events":13}],31:[function(require,module,exports){
+},{"events":12}],33:[function(require,module,exports){
 module.exports = require('./readable').PassThrough
 
-},{"./readable":32}],32:[function(require,module,exports){
+},{"./readable":34}],34:[function(require,module,exports){
 exports = module.exports = require('./lib/_stream_readable.js');
 exports.Stream = exports;
 exports.Readable = exports;
@@ -5943,13 +6671,13 @@ exports.Duplex = require('./lib/_stream_duplex.js');
 exports.Transform = require('./lib/_stream_transform.js');
 exports.PassThrough = require('./lib/_stream_passthrough.js');
 
-},{"./lib/_stream_duplex.js":23,"./lib/_stream_passthrough.js":24,"./lib/_stream_readable.js":25,"./lib/_stream_transform.js":26,"./lib/_stream_writable.js":27}],33:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":25,"./lib/_stream_passthrough.js":26,"./lib/_stream_readable.js":27,"./lib/_stream_transform.js":28,"./lib/_stream_writable.js":29}],35:[function(require,module,exports){
 module.exports = require('./readable').Transform
 
-},{"./readable":32}],34:[function(require,module,exports){
+},{"./readable":34}],36:[function(require,module,exports){
 module.exports = require('./lib/_stream_writable.js');
 
-},{"./lib/_stream_writable.js":27}],35:[function(require,module,exports){
+},{"./lib/_stream_writable.js":29}],37:[function(require,module,exports){
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
 var Buffer = buffer.Buffer
@@ -6013,7 +6741,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":11}],36:[function(require,module,exports){
+},{"buffer":15}],38:[function(require,module,exports){
 (function (Buffer){
 ;(function (sax) { // wrapper for non-node envs
   sax.parser = function (strict, opt) { return new SAXParser(strict, opt) }
@@ -6086,6 +6814,12 @@ SafeBuffer.allocUnsafeSlow = function (size) {
     // which protos to its parent tag.
     if (parser.opt.xmlns) {
       parser.ns = Object.create(rootNS)
+    }
+
+    // disallow unquoted attribute values if not otherwise configured
+    // and strict mode is true
+    if (parser.opt.unquotedAttributeValues === undefined) {
+      parser.opt.unquotedAttributeValues = !strict;
     }
 
     // mostly just for error reporting
@@ -6181,6 +6915,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   } catch (ex) {
     Stream = function () {}
   }
+  if (!Stream) Stream = function () {}
 
   var streamWraps = sax.EVENTS.filter(function (ev) {
     return ev !== 'error' && ev !== 'end'
@@ -7106,15 +7841,22 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           continue
 
         case S.SGML_DECL:
-          if ((parser.sgmlDecl + c).toUpperCase() === CDATA) {
+          if (parser.sgmlDecl + c === '--') {
+            parser.state = S.COMMENT
+            parser.comment = ''
+            parser.sgmlDecl = ''
+            continue;
+          }
+
+          if (parser.doctype && parser.doctype !== true && parser.sgmlDecl) {
+            parser.state = S.DOCTYPE_DTD
+            parser.doctype += '<!' + parser.sgmlDecl + c
+            parser.sgmlDecl = ''
+          } else if ((parser.sgmlDecl + c).toUpperCase() === CDATA) {
             emitNode(parser, 'onopencdata')
             parser.state = S.CDATA
             parser.sgmlDecl = ''
             parser.cdata = ''
-          } else if (parser.sgmlDecl + c === '--') {
-            parser.state = S.COMMENT
-            parser.comment = ''
-            parser.sgmlDecl = ''
           } else if ((parser.sgmlDecl + c).toUpperCase() === DOCTYPE) {
             parser.state = S.DOCTYPE
             if (parser.doctype || parser.sawRoot) {
@@ -7168,12 +7910,18 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           continue
 
         case S.DOCTYPE_DTD:
-          parser.doctype += c
           if (c === ']') {
+            parser.doctype += c
             parser.state = S.DOCTYPE
+          } else if (c === '<') {
+            parser.state = S.OPEN_WAKA
+            parser.startTagPosition = parser.position
           } else if (isQuote(c)) {
+            parser.doctype += c
             parser.state = S.DOCTYPE_DTD_QUOTED
             parser.q = c
+          } else {
+            parser.doctype += c
           }
           continue
 
@@ -7214,6 +7962,8 @@ SafeBuffer.allocUnsafeSlow = function (size) {
             // which is a comment of " blah -- bloo "
             parser.comment += '--' + c
             parser.state = S.COMMENT
+          } else if (parser.doctype && parser.doctype !== true) {
+            parser.state = S.DOCTYPE_DTD
           } else {
             parser.state = S.TEXT
           }
@@ -7381,7 +8131,9 @@ SafeBuffer.allocUnsafeSlow = function (size) {
             parser.q = c
             parser.state = S.ATTRIB_VALUE_QUOTED
           } else {
-            strictFail(parser, 'Unquoted attribute value')
+            if (!parser.opt.unquotedAttributeValues) {
+              error(parser, 'Unquoted attribute value')
+            }
             parser.state = S.ATTRIB_VALUE_UNQUOTED
             parser.attribValue = c
           }
@@ -7499,9 +8251,16 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           }
 
           if (c === ';') {
-            parser[buffer] += parseEntity(parser)
-            parser.entity = ''
-            parser.state = returnState
+            var parsedEntity = parseEntity(parser)
+            if (parser.opt.unparsedEntities && !Object.values(sax.XML_ENTITIES).includes(parsedEntity)) {
+              parser.entity = ''
+              parser.state = returnState
+              parser.write(parsedEntity)
+            } else {
+              parser[buffer] += parsedEntity
+              parser.entity = ''
+              parser.state = returnState
+            }
           } else if (isMatch(parser.entity.length ? entityBody : entityStart, c)) {
             parser.entity += c
           } else {
@@ -7513,8 +8272,9 @@ SafeBuffer.allocUnsafeSlow = function (size) {
 
           continue
 
-        default:
+        default: /* istanbul ignore next */ {
           throw new Error(parser, 'Unknown state: ' + parser.state)
+        }
       }
     } // while
 
@@ -7582,7 +8342,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
 })(typeof exports === 'undefined' ? this.sax = {} : exports)
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11,"stream":37,"string_decoder":38}],37:[function(require,module,exports){
+},{"buffer":15,"stream":39,"string_decoder":13}],39:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -7711,7 +8471,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"events":13,"inherits":16,"readable-stream/duplex.js":22,"readable-stream/passthrough.js":31,"readable-stream/readable.js":32,"readable-stream/transform.js":33,"readable-stream/writable.js":34}],38:[function(require,module,exports){
+},{"events":12,"inherits":18,"readable-stream/duplex.js":24,"readable-stream/passthrough.js":33,"readable-stream/readable.js":34,"readable-stream/transform.js":35,"readable-stream/writable.js":36}],40:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('safe-buffer').Buffer;
@@ -7984,7 +8744,86 @@ function simpleWrite(buf) {
 function simpleEnd(buf) {
   return buf && buf.length ? this.write(buf) : '';
 }
-},{"safe-buffer":35}],39:[function(require,module,exports){
+},{"safe-buffer":37}],41:[function(require,module,exports){
+(function (setImmediate,clearImmediate){
+var nextTick = require('process/browser.js').nextTick;
+var apply = Function.prototype.apply;
+var slice = Array.prototype.slice;
+var immediateIds = {};
+var nextImmediateId = 0;
+
+// DOM APIs, for completeness
+
+exports.setTimeout = function() {
+  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
+};
+exports.setInterval = function() {
+  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
+};
+exports.clearTimeout =
+exports.clearInterval = function(timeout) { timeout.close(); };
+
+function Timeout(id, clearFn) {
+  this._id = id;
+  this._clearFn = clearFn;
+}
+Timeout.prototype.unref = Timeout.prototype.ref = function() {};
+Timeout.prototype.close = function() {
+  this._clearFn.call(window, this._id);
+};
+
+// Does not start the time, just sets up the members needed.
+exports.enroll = function(item, msecs) {
+  clearTimeout(item._idleTimeoutId);
+  item._idleTimeout = msecs;
+};
+
+exports.unenroll = function(item) {
+  clearTimeout(item._idleTimeoutId);
+  item._idleTimeout = -1;
+};
+
+exports._unrefActive = exports.active = function(item) {
+  clearTimeout(item._idleTimeoutId);
+
+  var msecs = item._idleTimeout;
+  if (msecs >= 0) {
+    item._idleTimeoutId = setTimeout(function onTimeout() {
+      if (item._onTimeout)
+        item._onTimeout();
+    }, msecs);
+  }
+};
+
+// That's not how node.js implements it but the exposed api is the same.
+exports.setImmediate = typeof setImmediate === "function" ? setImmediate : function(fn) {
+  var id = nextImmediateId++;
+  var args = arguments.length < 2 ? false : slice.call(arguments, 1);
+
+  immediateIds[id] = true;
+
+  nextTick(function onNextTick() {
+    if (immediateIds[id]) {
+      // fn.call() is faster so we optimize for the common use-case
+      // @see http://jsperf.com/call-apply-segu
+      if (args) {
+        fn.apply(null, args);
+      } else {
+        fn.call(null);
+      }
+      // Prevent ids from leaking
+      exports.clearImmediate(id);
+    }
+  });
+
+  return id;
+};
+
+exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function(id) {
+  delete immediateIds[id];
+};
+}).call(this,require("timers").setImmediate,require("timers").clearImmediate)
+},{"process/browser.js":23,"timers":41}],42:[function(require,module,exports){
 (function (global){
 
 /**
@@ -8055,163 +8894,21 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],40:[function(require,module,exports){
-var indexOf = require('indexof');
-
-var Object_keys = function (obj) {
-    if (Object.keys) return Object.keys(obj)
-    else {
-        var res = [];
-        for (var key in obj) res.push(key)
-        return res;
-    }
-};
-
-var forEach = function (xs, fn) {
-    if (xs.forEach) return xs.forEach(fn)
-    else for (var i = 0; i < xs.length; i++) {
-        fn(xs[i], i, xs);
-    }
-};
-
-var defineProp = (function() {
-    try {
-        Object.defineProperty({}, '_', {});
-        return function(obj, name, value) {
-            Object.defineProperty(obj, name, {
-                writable: true,
-                enumerable: false,
-                configurable: true,
-                value: value
-            })
-        };
-    } catch(e) {
-        return function(obj, name, value) {
-            obj[name] = value;
-        };
-    }
-}());
-
-var globals = ['Array', 'Boolean', 'Date', 'Error', 'EvalError', 'Function',
-'Infinity', 'JSON', 'Math', 'NaN', 'Number', 'Object', 'RangeError',
-'ReferenceError', 'RegExp', 'String', 'SyntaxError', 'TypeError', 'URIError',
-'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent', 'escape',
-'eval', 'isFinite', 'isNaN', 'parseFloat', 'parseInt', 'undefined', 'unescape'];
-
-function Context() {}
-Context.prototype = {};
-
-var Script = exports.Script = function NodeScript (code) {
-    if (!(this instanceof Script)) return new Script(code);
-    this.code = code;
-};
-
-Script.prototype.runInContext = function (context) {
-    if (!(context instanceof Context)) {
-        throw new TypeError("needs a 'context' argument.");
-    }
-
-    var iframe = document.createElement('iframe');
-    if (!iframe.style) iframe.style = {};
-    iframe.style.display = 'none';
-
-    document.body.appendChild(iframe);
-
-    var win = iframe.contentWindow;
-    var wEval = win.eval, wExecScript = win.execScript;
-
-    if (!wEval && wExecScript) {
-        // win.eval() magically appears when this is called in IE:
-        wExecScript.call(win, 'null');
-        wEval = win.eval;
-    }
-
-    forEach(Object_keys(context), function (key) {
-        win[key] = context[key];
-    });
-    forEach(globals, function (key) {
-        if (context[key]) {
-            win[key] = context[key];
-        }
-    });
-
-    var winKeys = Object_keys(win);
-
-    var res = wEval.call(win, this.code);
-
-    forEach(Object_keys(win), function (key) {
-        // Avoid copying circular objects like `top` and `window` by only
-        // updating existing context properties or new properties in the `win`
-        // that was only introduced after the eval.
-        if (key in context || indexOf(winKeys, key) === -1) {
-            context[key] = win[key];
-        }
-    });
-
-    forEach(globals, function (key) {
-        if (!(key in context)) {
-            defineProp(context, key, win[key]);
-        }
-    });
-
-    document.body.removeChild(iframe);
-
-    return res;
-};
-
-Script.prototype.runInThisContext = function () {
-    return eval(this.code); // maybe...
-};
-
-Script.prototype.runInNewContext = function (context) {
-    var ctx = Script.createContext(context);
-    var res = this.runInContext(ctx);
-
-    forEach(Object_keys(ctx), function (key) {
-        context[key] = ctx[key];
-    });
-
-    return res;
-};
-
-forEach(Object_keys(Script.prototype), function (name) {
-    exports[name] = Script[name] = function (code) {
-        var s = Script(code);
-        return s[name].apply(s, [].slice.call(arguments, 1));
-    };
-});
-
-exports.createScript = function (code) {
-    return exports.Script(code);
-};
-
-exports.createContext = Script.createContext = function (context) {
-    var copy = new Context();
-    if(typeof context === 'object') {
-        forEach(Object_keys(context), function (key) {
-            copy[key] = context[key];
-        });
-    }
-    return copy;
-};
-
-},{"indexof":15}],41:[function(require,module,exports){
-arguments[4][10][0].apply(exports,arguments)
-},{"dup":10}],42:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 module.exports={
-  "name": "xml-js",
-  "version": "1.6.2",
-  "description": "A convertor between XML text and Javascript object / JSON text.",
+  "name": "@artrv/xml-js",
+  "version": "1.6.12",
+  "description": "Fork of xml-js with a memory retention fix and isolated per-call parsing state. Converts between XML and JavaScript objects / JSON.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nashwaan/xml-js.git"
+    "url": "git+https://github.com/artrv/xml-js.git"
   },
   "author": "Yousuf Almarzooqi <ysf953@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nashwaan/xml-js/issues"
+    "url": "https://github.com/artrv/xml-js/issues"
   },
-  "homepage": "https://github.com/nashwaan/xml-js#readme",
+  "homepage": "https://github.com/artrv/xml-js#readme",
   "keywords": [
     "XML",
     "xml",
@@ -8265,52 +8962,66 @@ module.exports={
     "open:istanbul": "biased-opener --browser chrome http://localhost:9998",
     "live": "npm-run-all --parallel live:* open:*",
     "start": "npm-run-all --parallel bundle:jasmine live:jasmine open:jasmine watch:istanbul live:istanbul open:istanbul",
-    "git:commit": "git add . && git commit -a -m \"Committed by npm script.\" && git push origin master",
-    "git:push": "git push origin master",
-    "deploy": "npm-run-all --serial coverage:* git:*",
-    "coverage": "npm-run-all coverage:*",
-    "coverage:a-step": "npm run istanbul",
-    "coverage:coveralls": "cat ./test/coverage-jasmine/lcov.info | coveralls",
-    "coverage:codecov": "codecov --token=0e52af41-702b-4d7f-8aa3-61145ac36624 --file=test/coverage-jasmine/lcov.info ",
-    "coverage:codacy": "cross-env CODACY_PROJECT_TOKEN=0207815122ea49a68241d1aa435f21f1 && cat ./test/coverage-jasmine/lcov.info | codacy-coverage",
-    "coverage:codeclimate": "cross-env CODECLIMATE_REPO_TOKEN=60848a077f9070acf358b0c7145f0a2698a460ddeca7d8250815e75aa4333f7d codeclimate-test-reporter < test\\coverage-jasmine\\lcov.info",
-    "prepublish": "npm run test",
-    "test": "npm run jasmine && npm run jest && npm run test:types",
-    "test:types": "tsc -p ./types"
+    "test": "npm run test:upstream && npm run test:lifecycle && npm run test:ownership",
+    "test:types": "tsc -p ./types",
+    "test:upstream": "npm run jasmine && npm run jest -- --runInBand && npm run test:types",
+    "test:lifecycle": "node --test test/xml-parser-lifecycle.test.cjs",
+    "test:ownership": "node --test test/xml-parser-ownership.test.cjs",
+    "test:package": "node test/package-smoke.cjs",
+    "test:browser": "node test/browser-smoke.cjs",
+    "build:test-browser": "globify test/*.spec.js --outfile test/browse-jasmine/bundle.js",
+    "prepack": "npm run build",
+    "verify:package": "node test/verify-package.cjs"
   },
   "dependencies": {
-    "sax": "^1.2.4"
+    "sax": "1.4.1"
   },
   "devDependencies": {
-    "babel-core": "^6.26.0",
-    "babel-loader": "^7.1.2",
-    "babel-preset-env": "^1.6.1",
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.1.4",
+    "babel-preset-env": "^1.7.0",
     "biased-opener": "^0.2.8",
-    "browser-sync": "^2.23.5",
+    "browser-sync": "^2.26.3",
     "cash-cat": "^0.2.0",
-    "codacy-coverage": "^2.0.3",
-    "codeclimate-test-reporter": "^0.5.0",
-    "codecov": "^3.0.0",
-    "coveralls": "^3.0.0",
-    "cross-env": "^5.1.3",
-    "eslint": "^4.15.0",
-    "globify": "^2.3.0",
+    "codacy-coverage": "^3.4.0",
+    "codeclimate-test-reporter": "^0.5.1",
+    "codecov": "^3.1.0",
+    "coveralls": "^3.0.2",
+    "cross-env": "^5.2.0",
+    "eslint": "^5.12.0",
+    "globify": "^2.3.4",
     "istanbul": "^0.4.5",
-    "jasmine": "^2.8.0",
+    "jasmine": "^3.3.1",
     "jest": "^20.0.4",
     "jest-cli": "^20.0.4",
     "jsonpath": "^1.0.0",
-    "nodemon": "^1.14.11",
-    "npm-run-all": "^4.1.2",
-    "prismjs": "^1.9.0",
-    "typescript": "^2.6.2",
+    "nodemon": "^1.18.9",
+    "npm-run-all": "^4.1.5",
+    "prismjs": "^1.15.0",
+    "typescript": "^3.2.2",
     "unminified-webpack-plugin": "^1.4.2",
     "watch": "^1.0.1",
-    "webpack": "^3.10.0"
+    "webpack": "^3.10.0",
+    "xml-js-upstream": "npm:xml-js@1.6.11"
+  },
+  "files": [
+    "lib/",
+    "dist/",
+    "bin/*.js",
+    "index.js",
+    "types/index.d.ts",
+    "README.md",
+    "FORK.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }
 
-},{}],43:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 var helper = require('../lib/array-helper');
 
 /*global describe,it,expect,beforeEach,afterEach*/
@@ -8347,7 +9058,7 @@ describe('Testing array-helper.js:', function () {
 
       it('Use fallback when isArray is not defined', function () {
         Array.isArray = undefined;
-
+        
         expect(helper.isArray(['one', 'two', 'three'])).toBe(true);
         expect(helper.isArray({})).toBe(false);
       });
@@ -8358,7 +9069,7 @@ describe('Testing array-helper.js:', function () {
 
 });
 
-},{"../lib/array-helper":2}],44:[function(require,module,exports){
+},{"../lib/array-helper":2}],45:[function(require,module,exports){
 (function (process){
 var helper = require('../bin/cli-helper');
 
@@ -8438,7 +9149,7 @@ describe('Testing cli.js:', function () {
 });
 
 }).call(this,require('_process'))
-},{"../bin/cli-helper":1,"_process":21}],45:[function(require,module,exports){
+},{"../bin/cli-helper":1,"_process":23}],46:[function(require,module,exports){
 (function (__dirname){
 if (typeof jasmineRequire === 'undefined') {
 
@@ -8519,7 +9230,7 @@ if (typeof jasmineRequire === 'undefined') {
 }
 
 }).call(this,"/test")
-},{"../package.json":42,"child_process":41,"path":19}],46:[function(require,module,exports){
+},{"../package.json":43,"child_process":11,"path":21}],47:[function(require,module,exports){
 var convert = require('../lib');
 
 /*global describe,it,expect*/
@@ -8850,7 +9561,7 @@ describe('Testing js2xml.js:', function () {
 
 });
 
-},{"../lib":3}],47:[function(require,module,exports){
+},{"../lib":3}],48:[function(require,module,exports){
 var convert = require('../lib');
 var Script = require('vm').Script;
 
@@ -9267,12 +9978,48 @@ describe('Testing js2xml.js:', function () {
       });
     });
 
+    describe('case by Cy-Tek', function() {
+      // see https://github.com/nashwaan/xml-js/issues/59
+      var js = {
+        textless: {
+          calling_offer_code: '',
+          mailing_code: '',
+          vcpi: '' },
+      };
+      var xml =
+      '<textless>\n' +
+      '  <calling_offer_code/>\n' +
+      '  <mailing_code/>\n' +
+      '  <vcpi/>\n' +
+      '</textless>';
+      it ('should not create full tag for empty elements', function() {
+        expect(convert.js2xml(js, {compact: true, spaces: 2, fullTagEmptyElement: false})).toEqual(xml);
+      });
+    });
+
+    describe('case by Nathan Perry', function() {
+      // see n/a
+      var js = {
+        container: {
+          cdata_section: {
+            _cdata: '<p><![CDATA[aaaa, one <bbbb>cccc</bbbb>]]></p>',
+          },
+        },
+      };
+      var xml =
+      '<container>\n' +
+      '  <cdata_section><![CDATA[<p><![CDATA[aaaa, one <bbbb>cccc</bbbb>]]]]><![CDATA[></p>]]></cdata_section>\n' +
+      '</container>';
+      it ('should handle nested CDATA sections', function() {
+        expect(convert.js2xml(js, {compact: true, spaces: 2, fullTagEmptyElement: false})).toEqual(xml);
+      });
+    });
 
   });
 
 });
 
-},{"../lib":3,"vm":40}],48:[function(require,module,exports){
+},{"../lib":3,"vm":14}],49:[function(require,module,exports){
 (function (Buffer){
 var convert = require('../lib');
 var testItems = require('./test-items');
@@ -9619,7 +10366,7 @@ describe('Testing js2xml.js:', function () {
       var options = {};
       testItems('js2xml', options).forEach(function (test) {
         it(test.desc, function () {
-          expect(convert.json2xml(new Buffer(JSON.stringify(test.js)), options)).toEqual(test.xml);
+          expect(convert.json2xml(new Buffer.from(JSON.stringify(test.js)), options)).toEqual(test.xml);
         });
       });
 
@@ -9656,7 +10403,7 @@ describe('Testing js2xml.js:', function () {
 });
 
 }).call(this,require("buffer").Buffer)
-},{"../lib":3,"./test-items":50,"buffer":11}],49:[function(require,module,exports){
+},{"../lib":3,"./test-items":51,"buffer":15}],50:[function(require,module,exports){
 var helper = require('../lib/options-helper');
 
 /*global describe,it,expect*/
@@ -9726,7 +10473,7 @@ describe('Testing options.js:', function () {
 
 });
 
-},{"../lib/options-helper":6}],50:[function(require,module,exports){
+},{"../lib/options-helper":6}],51:[function(require,module,exports){
 var isArray = require('../lib/array-helper').isArray;
 
 var cases = [
@@ -9942,6 +10689,12 @@ module.exports = function (direction, options) {
     return key;
   }
   function applyAttributesCallback(obj, key, parentKey) {
+    if (options.nativeTypeAttributes) {
+      var parsedNumber = Number(obj[key]);
+      if (!Number.isNaN(parsedNumber)) {
+        obj[key] = parsedNumber;
+      }
+    }
     if (('attributeNameFn' in options || 'attributeValueFn' in options) && (parentKey === '_attributes' || parentKey === 'attributes')) {
       if ('attributeNameFn' in options) {
         var temp = obj[key];
@@ -9996,7 +10749,7 @@ module.exports = function (direction, options) {
   return tests;
 };
 
-},{"../lib/array-helper":2}],51:[function(require,module,exports){
+},{"../lib/array-helper":2}],52:[function(require,module,exports){
 var convert = require('../lib');
 var testItems = require('./test-items');
 
@@ -10366,10 +11119,11 @@ describe('Testing xml2js.js:', function () {
 
 });
 
-},{"../lib":3,"./test-items":50}],52:[function(require,module,exports){
+},{"../lib":3,"./test-items":51}],53:[function(require,module,exports){
 var convert = require('../lib');
 
-/*global describe,it,expect*/
+/*eslint quotes: 0*/  // --> turn off error of strings surrounded by double quotes
+/*global describe,xdescribe,it,expect*/
 
 describe('Testing xml2js.js:', function () {
 
@@ -10740,11 +11494,33 @@ describe('Testing xml2js.js:', function () {
 
     });
 
+    describe('case by SergeyAlexsandrovich', function () {
+      // see https://github.com/nashwaan/xml-js/issues/44
+      var xml = '<material><font size="14"/></material><material><font size="14"/></material>';
+      var js = {
+        "material": [{
+          "font": {
+            "_attributes": {"size":"14"}
+          }
+        }, {
+          "font": {
+            "_attributes": {"size":"14"}
+          }
+        }]
+      };
+      it('should json to xml and back to json', function () {
+        // console.log(convert.xml2json(xml, {compact: true}));
+        // expect(convert.js2xml(js, {compact: true})).toEqual(xml);
+        expect(convert.xml2json(xml, {compact: true})).toEqual(JSON.stringify(js));
+      });
+
+    });
+
   });
 
 });
 
-},{"../lib":3}],53:[function(require,module,exports){
+},{"../lib":3}],54:[function(require,module,exports){
 var convert = require('../lib');
 var testItems = require('./test-items');
 
@@ -11004,7 +11780,7 @@ describe('Testing xml2js.js:', function () {
 
 });
 
-},{"../lib":3,"./test-items":50}],54:[function(require,module,exports){
+},{"../lib":3,"./test-items":51}],55:[function(require,module,exports){
 var convert = require('../lib');
 var testItems = require('./test-items');
 
@@ -11074,6 +11850,17 @@ describe('Testing xml2js.js:', function () {
     describe('options = {nativeType: true}', function () {
 
       var options = {compact: false, nativeType: true};
+      testItems('xml2js', options).forEach(function (test) {
+        it(test.desc, function () {
+          expect(convert.xml2js(test.xml, options)).toEqual(test.js);
+        });
+      });
+
+    });
+
+    describe('options = {nativeTypeAttributes: true}', function () {
+
+      var options = {compact: false, nativeTypeAttributes: true};
       testItems('xml2js', options).forEach(function (test) {
         it(test.desc, function () {
           expect(convert.xml2js(test.xml, options)).toEqual(test.js);
@@ -11422,6 +12209,22 @@ describe('Testing xml2js.js:', function () {
 
     });
 
+    describe('options = {nativeTypeAttributes: true}', function () {
+
+      var options = {nativeTypeAttributes: true};
+
+      it('Parse number', function () {
+        expect(convert.xml2js('<a data-value="123"></a>', options)).toEqual({"elements":[{"type":"element","name":"a","attributes":{"data-value":123}}]});
+      });
+      it('Parse true', function () {
+        expect(convert.xml2js('<a data-value="true"></a>', options)).toEqual({"elements":[{"type":"element","name":"a","attributes":{"data-value":true}}]});
+      });
+      it('Parse false', function () {
+        expect(convert.xml2js('<a data-value="false"></a>', options)).toEqual({"elements":[{"type":"element","name":"a","attributes":{"data-value":false}}]});
+      });
+
+    });
+
     describe('options = {instructionHasAttributes: true}', function () {
 
       var options = {compact: true, instructionHasAttributes: true};
@@ -11701,4 +12504,4 @@ describe('Testing xml2js.js:', function () {
 
 });
 
-},{"../lib":3,"./test-items":50}]},{},[43,44,45,46,47,48,49,51,52,53,54]);
+},{"../lib":3,"./test-items":51}]},{},[44,45,46,47,48,49,50,52,53,54,55]);
