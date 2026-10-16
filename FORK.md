@@ -43,7 +43,7 @@ malformed-input semantics or serializer state.
 | `.gitignore`, `README.md`, `FORK.md`, `CHANGELOG.md` | Generated-file exclusions and public fork documentation |
 
 The inherited npm lockfile's root version was 1.6.10, although the manifest was
-1.6.11. The manifest and npm lock now identify the prepared fork as
+1.6.11. The manifest and npm lock identify the published fork as
 `@artrv/xml-js@1.6.12`; the lockfile has been regenerated in npm's v3 format
 without changing other resolved dependency versions. Its SAX was 1.2.4 and the
 manifest allowed `^1.2.4`.
@@ -182,18 +182,44 @@ checkout, without sibling projects: Node **20.19.0**, npm **10.8.2**, SAX
 | Installed tarball ownership | PASS, 16 isolated cases across main, direct parser and two dist bundles |
 | Installed tarball in Chromium | PASS for both script-tag bundles; all four APIs, nested parsing, parent links and recovery |
 
-These are new checks of this fork and its local tarball, independent of the prior
-vendored implementation's results. Registry publication/installation, hosted CI,
-older Node runtimes and other browsers are **NOT_RUN**. The two inherited skipped
-tests were not converted to passes. Review commands print fresh artifact hashes;
-no claim is made about a published artifact.
+These are checks of this fork and its local tarball, independent of the prior
+vendored implementation's results. Hosted CI, older Node runtimes and other
+browsers remain **NOT_RUN**. The two inherited skipped tests were not converted
+to passes. The separate registry comparison below does not turn these local
+installation tests into registry installation tests.
 
-## Release checklist (owner action, not performed)
+## Published package comparison on 2026-10-16
 
-1. Confirm the prepared identity `@artrv/xml-js@1.6.12`, control of the npm scope
-   and availability of the version. GitHub owner `artrv` alone does not establish
-   npm authorization. If the identity changes, update manifest/lock metadata,
-   installation examples and changelog together.
+The npm registry records `@artrv/xml-js@1.6.12` as published at
+**2026-10-16T12:45:26.415Z**. Its
+[registry tarball](https://registry.npmjs.org/@artrv/xml-js/-/xml-js-1.6.12.tgz)
+was downloaded and compared with the locally tested implementation in commit
+`9ee338d785f4c8bd9b77e8df7ac8724235d1f281`.
+
+- All 13 distributed library, browser bundle, CLI and declaration files match
+  byte for byte. `package.json` also matches, including SAX **1.4.1**.
+- Only `README.md`, `FORK.md` and `CHANGELOG.md` differ within the published
+  tarball; the repository versions correct publication status and documentation.
+- `.npmrc`, `package-lock.json` and the browser test bundle are not published.
+  The development-install adjustment does not affect package consumers.
+- Registry tarball SHA-256:
+  `70c21590fe3c0b2c86ef4adc415bc261ec501604bfb28b5d6546795d126b6ff4`.
+
+The published package therefore contains the tested parsing-state fix. This
+check downloaded and compared the archive; a fresh registry installation and
+execution of API, ownership and browser probes against that installation are
+**NOT_RUN**. The full test results above belong to the local tarball.
+
+No new npm version is needed for the development setup and documentation
+corrections. Updating documents inside the registry tarball would require a new
+version; the existing 1.6.12 artifact cannot be replaced.
+
+## Checklist for future releases
+
+1. Confirm the package name `@artrv/xml-js`, control of the npm scope and an unused
+   release version. Version **1.6.12 is already published** and cannot be reused.
+   GitHub ownership alone does not establish npm authorization. Update
+   manifest/lock metadata, installation examples and changelog together.
 2. Review the patch and license, run the commands above, inspect the tarball file
    list and test the exact final name/version in the temporary consumer. Record
    its checksum and the source commit used to build it.
@@ -216,7 +242,7 @@ no claim is made about a published artifact.
    a corresponding Git tag/release, with the checksum and release notes.
 
 The npm instructions were checked against official documentation on 2026-10-16;
-recheck them at release time. `@artrv/xml-js@1.6.12` is configured for public
-publication, but npm authentication, scope authorization and registry publication
-have not been verified. Publication, downstream dependency migration and removal
-of downstream vendored code are separate later steps.
+recheck them at release time. Publication of `@artrv/xml-js@1.6.12` is confirmed;
+the maintainer's current authentication and permissions have not been inspected.
+Downstream dependency migration and removal of downstream vendored code remain
+separate later steps.

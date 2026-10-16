@@ -18,15 +18,14 @@ Maintenance is limited to this parsing-state fix, its regressions and package
 compatibility. This is not a general rewrite or a commitment to resolve all
 upstream issues. Existing malformed-XML quirks are outside this change.
 
-**Publication status: unreleased.** The package is prepared as
-`@artrv/xml-js@1.6.12` with public npm publication configured. Registry publication
-and authorization for the `@artrv` scope still need to be verified by the owner.
-**`npm install xml-js` installs upstream, without this fix.** No npm release of
-this fork is claimed here.
+**Published on npm:** [`@artrv/xml-js@1.6.12`](https://www.npmjs.com/package/@artrv/xml-js/v/1.6.12),
+released on 2026-10-16. The published library, browser bundles, CLI, types and
+manifest match the locally verified implementation.
+**`npm install xml-js` installs upstream, without this fix.**
 
 See [FORK.md](FORK.md) for provenance, development, ownership diagnostics,
 verification results and the release checklist; see [CHANGELOG.md](CHANGELOG.md)
-for unreleased changes. Original MIT attribution is retained in [LICENSE](LICENSE).
+for release notes. Original MIT attribution is retained in [LICENSE](LICENSE).
 
 # Synopsis
 
@@ -98,8 +97,14 @@ Tip: You can reduce the output size by using shorter [key names](#options-for-ch
 
 ## Installation
 
-Until this fork is published, build a local tarball
-from this fork (Node 20+ and npm 10 for development):
+Install the published fork:
+
+```sh
+npm install @artrv/xml-js@1.6.12
+```
+
+For development or testing unpublished changes, build a local tarball
+(Node 20+ and npm 10 are development requirements):
 
 ```sh
 git clone https://github.com/artrv/xml-js.git
@@ -115,8 +120,8 @@ Install the resulting tarball in a separate project:
 npm install /absolute/path/to/artrv-xml-js-1.6.12.tgz
 ```
 
-The examples use the configured package name `@artrv/xml-js`. Install the local
-tarball before running them. Do not substitute `npm install xml-js` when testing
+The examples use `require('@artrv/xml-js')` with either the published package or
+a local tarball installation. Do not substitute `npm install xml-js` when using
 this fork.
 
 ## Browser scripts
@@ -336,7 +341,7 @@ Because any good library should support command line usage, this library is no d
 ## As Globally Accessible Command
 
 ```
-npm install -g /absolute/path/to/artrv-xml-js-1.6.12.tgz // local fork tarball
+npm install -g @artrv/xml-js@1.6.12
 xml-js test.json --spaces 4                 // xml result will be printed on screen
 xml-js test.json --spaces 4 --out test.xml  // xml result will be saved to test.xml
 xml-js test.xml --spaces 4                  // json result will be printed on screen
@@ -348,14 +353,14 @@ xml-js test.xml --spaces 4 --out test.json  // json result will be saved to test
 If you want to use it as script in package.json (can also be helpful in [task automation via npm scripts](http://blog.keithcirkel.co.uk/how-to-use-npm-as-a-build-tool/))
 
 ```
-npm install --save /absolute/path/to/artrv-xml-js-1.6.12.tgz
+npm install --save @artrv/xml-js@1.6.12
 ```
 
 In package.json, write a script:
 ```json
 ...
   "dependencies": {
-    "@artrv/xml-js": "file:/absolute/path/to/artrv-xml-js-1.6.12.tgz"
+    "@artrv/xml-js": "1.6.12"
   },
   "scripts": {
     "convert": "xml-js test.json --spaces 4"
